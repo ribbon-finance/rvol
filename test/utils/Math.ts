@@ -1,20 +1,37 @@
-import hre, { ethers } from "hardhat";
-import { expect } from "chai";
+import { ethers } from "hardhat";
+import { assert } from "chai";
+import { Contract } from "@ethersproject/contracts";
 
 const { parseEther } = ethers.utils;
 
 describe("Math", () => {
-  describe("Gas use", () => {
-    it("gas", async function () {
-      const TestMath = await ethers.getContractFactory("TestMath");
-      const testMath = await TestMath.deploy();
-      const hegicGas = await testMath.testHegic(86400);
-      const bsGas = await testMath.testBS(86400);
-      const prbGas = await testMath.testPRB(86400);
+  let testMath: Contract;
 
-      console.log("hegic", hegicGas.toNumber());
-      console.log("bs", bsGas.toNumber());
-      console.log("prb", prbGas.toNumber());
+  before(async () => {
+    const TestMath = await ethers.getContractFactory("TestMath");
+    testMath = await TestMath.deploy();
+  });
+
+  describe("stdev", () => {
+    it("gas", async function () {
+      const [result, gasUsed] = await testMath.testStdev([
+        parseEther("1"),
+        parseEther("1.1"),
+        parseEther("1.2"),
+        parseEther("1.3"),
+        parseEther("1.4"),
+        parseEther("1.5"),
+        parseEther("1.6"),
+        parseEther("1.7"),
+      ]);
+      console.log("gasUsed", gasUsed.toNumber());
+    });
+  });
+
+  describe("sqrt", () => {
+    it("gas", async function () {
+      const prbGas = await testMath.testPRB(86400);
+      assert.equal(prbGas, 709);
     });
   });
 });
