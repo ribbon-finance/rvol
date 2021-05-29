@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import { assert } from "chai";
 import { Contract } from "@ethersproject/contracts";
 import { BigNumber } from "@ethersproject/bignumber";
-import { parseEther, formatUnits, parseUnits } from "@ethersproject/units";
+import { parseUnits } from "@ethersproject/units";
 
 const stdev = (values: BigNumber[]) => {
   let sum = BigNumber.from(0);
