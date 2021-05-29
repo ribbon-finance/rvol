@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.7.3;
 
-import {Math} from "../utils/Math.sol";
+import {Math} from "../libraries/Math.sol";
 
 contract TestMath {
     using Math for uint256;
