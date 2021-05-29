@@ -6,6 +6,7 @@
     "@types/mocha": "^8.2.2",
     "@types/node": "^15.6.1",
     "chai": "^4.3.4",
+    "dotenv": "^10.0.0",
     "ethereum-waffle": "^3.0.0",
     "ethers": "^5.0.0",
     "hardhat": "^2.3.0",
@@ -17,5 +18,9 @@
     "test": "npx hardhat test",
     "compile": "npx hardhat compile"
   },
-  "license": "GPL-3.0-only"
+  "license": "GPL-3.0-only",
+  "dependencies": {
+    "@uniswap/v3-core": "^1.0.0",
+    "@uniswap/v3-periphery": "^1.0.1"
+  }
 }
