@@ -34,9 +34,9 @@ contract VolatilityOracle {
         baseCurrencyDecimals = IERC20Detailed(_baseCurrency).decimals();
     }
 
-    function commit(uint32 numHours) {
-        uint256[] memory prices = getHourlyTWAP(numHours);
-    }
+    // function commit(uint32 numHours) {
+    //     uint256[] memory prices = getHourlyTWAP(numHours);
+    // }
 
     function getHourlyTWAP(uint32 numHours)
         public

@@ -13,7 +13,7 @@ library OracleLibrary {
     /// @notice Fetches time-weighted average tick using Uniswap V3 oracle
     /// @param pool Address of Uniswap V3 pool that we want to observe
     /// @param period Number of seconds in the past to start calculating time-weighted average
-    /// @return timeWeightedAverageTick The time-weighted average tick from (block.timestamp - period) to block.timestamp
+    /// @return timeWeightedAverageTick The time-weighted average tick
     function consult(address pool, uint32 period)
         internal
         view

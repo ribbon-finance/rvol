@@ -14,7 +14,7 @@ describe("Math", () => {
 
   describe("stdev", () => {
     it("gas", async function () {
-      const [result, gasUsed] = await testMath.testStdev([
+      const [, gasUsed] = await testMath.testStdev([
         parseEther("1"),
         parseEther("1.1"),
         parseEther("1.2"),
@@ -24,14 +24,14 @@ describe("Math", () => {
         parseEther("1.6"),
         parseEther("1.7"),
       ]);
-      console.log("gasUsed", gasUsed.toNumber());
+      assert.equal(gasUsed, 3626);
     });
   });
 
   describe("sqrt", () => {
     it("gas", async function () {
       const prbGas = await testMath.testPRB(86400);
-      assert.equal(prbGas, 709);
+      assert.equal(prbGas, 667);
     });
   });
 });
