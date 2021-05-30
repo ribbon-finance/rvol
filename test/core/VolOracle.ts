@@ -2,6 +2,7 @@ import { ethers } from "hardhat";
 import { assert } from "chai";
 import { Contract } from "@ethersproject/contracts";
 import moment from "moment-timezone";
+import * as time from "../helpers/time";
 
 const { provider, getContractFactory } = ethers;
 
@@ -9,6 +10,7 @@ moment.tz.setDefault("UTC");
 
 describe("VolOracle", () => {
   let oracle: Contract;
+  const PERIOD = 7200;
 
   before(async function () {
     const ethusdcPool = "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8";
@@ -19,7 +21,7 @@ describe("VolOracle", () => {
     const usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
     const VolOracle = await getContractFactory("VolOracle");
-    oracle = await VolOracle.deploy(ethusdcPool, weth, usdc, 7200);
+    oracle = await VolOracle.deploy(ethusdcPool, weth, usdc, PERIOD);
     // oracle = await VolOracle.deploy(ethusdcPool, weth, usdc);
   });
 
@@ -42,6 +44,23 @@ describe("VolOracle", () => {
       assert.equal(price, "2428946467");
       assert.equal(start, expectedStart);
       assert.equal(end, expectedEnd);
+    });
+  });
+
+  describe("commit", () => {
+    it("commits the twap", async function () {
+      const latestTimestamp = (await provider.getBlock("latest")).timestamp;
+      const topOfPeriod = latestTimestamp - (latestTimestamp % PERIOD);
+
+      await oracle.commit();
+      let stdev = await oracle.stdev();
+      assert.equal(stdev.toNumber(), 0);
+
+      await time.increaseTo(topOfPeriod + PERIOD + 1);
+
+      await oracle.commit();
+      stdev = await oracle.stdev();
+      assert.equal(stdev.toNumber(), 2426398);
     });
   });
 });

@@ -3,6 +3,7 @@ pragma solidity 0.7.3;
 
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {OracleLibrary} from "../libraries/OracleLibrary.sol";
+import {Welford} from "../libraries/Welford.sol";
 import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
 import "hardhat/console.sol";
 
@@ -45,7 +46,24 @@ contract VolOracle {
         period = _period;
     }
 
-    function commit() external returns (uint256) {}
+    function commit() external {
+        (, , uint256 price) = twap();
+        Accumulator storage accum = accumulator;
+
+        require(block.timestamp >= accum.lastTimestamp + period, "Early");
+
+        (uint256 newCount, uint256 newMean, uint256 newM2) =
+            Welford.update(accum.count, accum.mean, accum.m2, price);
+
+        accum.count = uint16(newCount);
+        accum.mean = uint96(newMean);
+        accum.m2 = uint112(newM2);
+        accum.lastTimestamp = uint32(topOfPeriod());
+    }
+
+    function stdev() external view returns (uint256) {
+        return Welford.getStdev(accumulator.count, accumulator.m2);
+    }
 
     function twap()
         public
