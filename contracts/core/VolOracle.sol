@@ -16,12 +16,14 @@ contract VolOracle {
     address public immutable quoteCurrency;
     uint32 public immutable period;
     uint8 private immutable baseCurrencyDecimals;
+    uint32 private constant twapDuration = 7200;
+    uint256 private constant commitPhaseDuration = 1800; // 30 minutes from 12am/12pm
 
     /**
      * Storage
      */
     struct Accumulator {
-        // 2^16-1 = 65535. Max ~15 years of data
+        // 2^16-1 = 65535. Max of 65k records.
         uint16 count;
         // Timestamp of the last record
         uint32 lastTimestamp;
@@ -46,64 +48,71 @@ contract VolOracle {
         period = _period;
     }
 
-    function commit() external {
-        (, , uint256 price) = twap();
+    function commit() external onlyCommitPhase {
+        uint256 rem = block.timestamp % period;
+        require(rem < commitPhaseDuration, "Not commit phase");
+
+        uint256 price = twap();
         Accumulator storage accum = accumulator;
 
-        require(block.timestamp >= accum.lastTimestamp + period, "Early");
+        require(block.timestamp >= accum.lastTimestamp + period, "Committed");
 
         (uint256 newCount, uint256 newMean, uint256 newM2) =
             Welford.update(accum.count, accum.mean, accum.m2, price);
 
+        uint32 commitTimestamp;
+        if (rem < period / 2) {
+            commitTimestamp = uint32(block.timestamp - rem);
+        } else {
+            commitTimestamp = uint32(block.timestamp + rem);
+        }
+
         accum.count = uint16(newCount);
         accum.mean = uint96(newMean);
         accum.m2 = uint112(newM2);
-        accum.lastTimestamp = uint32(topOfPeriod());
+        accum.lastTimestamp = commitTimestamp;
     }
 
     function stdev() external view returns (uint256) {
         return Welford.getStdev(accumulator.count, accumulator.m2);
     }
 
-    function twap()
-        public
-        view
-        returns (
-            uint32 start,
-            uint32 end,
-            uint256 price
-        )
-    {
-        end = uint32(topOfPeriod());
-        start = end - period;
-
+    function twap() public view returns (uint256) {
         // Space out the seconds by the hour
         uint32[] memory secondAgos = new uint32[](2);
-        secondAgos[0] = uint32(block.timestamp) - end + period;
-        secondAgos[1] = uint32(block.timestamp) - end;
+        secondAgos[0] = twapDuration;
+        secondAgos[1] = 0;
 
         (int56[] memory tickCumulatives, ) =
             IUniswapV3Pool(pool).observe(secondAgos);
 
         int56 tickCumulativesDelta = tickCumulatives[1] - tickCumulatives[0];
 
-        int24 timeWeightedAverageTick = int24(tickCumulativesDelta / period);
+        int24 timeWeightedAverageTick =
+            int24(tickCumulativesDelta / twapDuration);
 
         // Always round to negative infinity
-        if (tickCumulativesDelta < 0 && (tickCumulativesDelta % period != 0))
-            timeWeightedAverageTick--;
+        if (
+            tickCumulativesDelta < 0 &&
+            (tickCumulativesDelta % twapDuration != 0)
+        ) timeWeightedAverageTick--;
 
         uint128 quoteAmount = uint128(1 * 10**baseCurrencyDecimals);
 
-        price = OracleLibrary.getQuoteAtTick(
-            timeWeightedAverageTick,
-            quoteAmount,
-            baseCurrency,
-            quoteCurrency
-        );
+        return
+            OracleLibrary.getQuoteAtTick(
+                timeWeightedAverageTick,
+                quoteAmount,
+                baseCurrency,
+                quoteCurrency
+            );
     }
 
     function topOfPeriod() internal view returns (uint256) {
         return block.timestamp - (block.timestamp % period);
+    }
+
+    modifier onlyCommitPhase {
+        _;
     }
 }

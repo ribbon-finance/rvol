@@ -10,7 +10,7 @@ moment.tz.setDefault("UTC");
 
 describe("VolOracle", () => {
   let oracle: Contract;
-  const PERIOD = 7200;
+  const PERIOD = 43200; // 12 hours
 
   before(async function () {
     const ethusdcPool = "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8";
@@ -30,9 +30,9 @@ describe("VolOracle", () => {
       const latestTimestamp = (await provider.getBlock("latest")).timestamp;
 
       const expectedStart = moment(latestTimestamp * 1000)
+        .hours(0)
         .minutes(0)
         .seconds(0)
-        .subtract(2, "hours")
         .unix();
 
       const expectedEnd = moment(latestTimestamp * 1000)
@@ -40,14 +40,14 @@ describe("VolOracle", () => {
         .seconds(0)
         .unix();
 
-      const { start, end, price } = await oracle.twap();
+      const price = await oracle.twap();
       assert.equal(price, "2428946467");
-      assert.equal(start, expectedStart);
-      assert.equal(end, expectedEnd);
     });
   });
 
   describe("commit", () => {
+    time.revertToSnapshotAfterEach();
+
     it("commits the twap", async function () {
       const latestTimestamp = (await provider.getBlock("latest")).timestamp;
       const topOfPeriod = latestTimestamp - (latestTimestamp % PERIOD);
@@ -60,7 +60,23 @@ describe("VolOracle", () => {
 
       await oracle.commit();
       stdev = await oracle.stdev();
-      assert.equal(stdev.toNumber(), 2426398);
+      assert.equal(stdev.toNumber(), 3153371);
+    });
+
+    it("fits gas budget", async function () {
+      const latestTimestamp = (await provider.getBlock("latest")).timestamp;
+      const topOfPeriod = latestTimestamp - (latestTimestamp % PERIOD);
+
+      // First time is more expensive
+      const tx1 = await oracle.commit();
+      const receipt1 = await tx1.wait();
+      assert.equal(receipt1.gasUsed.toNumber(), 95702);
+
+      await time.increaseTo(topOfPeriod + PERIOD + 1);
+
+      const tx2 = await oracle.commit();
+      const receipt2 = await tx2.wait();
+      assert.equal(receipt2.gasUsed.toNumber(), 44636);
     });
   });
 });
