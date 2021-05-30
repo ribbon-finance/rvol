@@ -17,6 +17,7 @@
     "hardhat": "^2.3.0",
     "husky": "^6.0.0",
     "lint-staged": "^11.0.0",
+    "moment-timezone": "^0.5.33",
     "prettier": "^2.3.0",
     "prettier-plugin-solidity": "^1.0.0-beta.11",
     "solhint": "3.3.4",

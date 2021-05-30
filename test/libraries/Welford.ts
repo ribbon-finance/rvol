@@ -42,6 +42,11 @@ describe("Welford", () => {
 
       for (let i = 0; i < values.length; i++) {
         await testWelford.update(values[i]);
+        console.log(
+          (await testWelford.mean()).toString(),
+          (await testWelford.m2()).toString(),
+          (await testWelford.count()).toNumber()
+        );
       }
       const welfordStdev = await testWelford.stdev();
       const actualStdev = stdev(values);

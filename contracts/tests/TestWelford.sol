@@ -4,9 +4,9 @@ pragma solidity 0.7.3;
 import {Welford} from "../libraries/Welford.sol";
 
 contract TestWelford {
-    uint256 count;
-    uint256 mean;
-    uint256 m2;
+    uint256 public count;
+    uint256 public mean;
+    uint256 public m2;
 
     function update(uint256 newValue) external {
         (uint256 newCount, uint256 newMean, uint256 newM2) =
