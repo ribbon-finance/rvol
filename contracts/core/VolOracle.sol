@@ -16,14 +16,14 @@ contract VolOracle {
     address public immutable quoteCurrency;
     uint32 public immutable period;
     uint8 private immutable baseCurrencyDecimals;
-    uint32 private constant twapDuration = 7200;
-    uint256 private constant commitPhaseDuration = 1800; // 30 minutes from 12am/12pm
+    uint256 private constant commitPhaseDuration = 1800; // 30 minutes from every period
 
     /**
      * Storage
      */
     struct Accumulator {
-        // 2^16-1 = 65535. Max of 65k records.
+        // Max number of records: 2^16-1 = 65535.
+        // If we commit twice a day, we get to have a max of ~89 years.
         uint16 count;
         // Timestamp of the last record
         uint32 lastTimestamp;
@@ -33,14 +33,40 @@ contract VolOracle {
         uint112 m2;
     }
 
+    /// @dev Stores the latest data that helps us compute the standard deviation of the seen dataset.
     Accumulator public accumulator;
 
+    /**
+     * @notice Creates an volatility oracle for a pool
+     * @param _pool is the Uniswap v3 pool
+     * @param _baseCurrency is the currency to measure the volatility of
+     * @param _quoteCurrency is the currency to quote the volatility in
+     * @param _period is how often the oracle needs to be updated
+     */
     constructor(
         address _pool,
         address _baseCurrency,
         address _quoteCurrency,
         uint32 _period
     ) {
+        IUniswapV3Pool uniPool = IUniswapV3Pool(_pool);
+        address token0 = uniPool.token0();
+        address token1 = uniPool.token1();
+
+        require(_pool != address(0), "!_pool");
+        require(_baseCurrency != address(0), "!_baseCurrency");
+        require(_quoteCurrency != address(0), "!_quoteCurrency");
+        require(_period > 0, "!_period");
+
+        // Check that the base and quote currencies are part of the pool
+        if (_baseCurrency == token0) {
+            require(_quoteCurrency == token1, "quote needs to be token1");
+        } else if (_baseCurrency == token1) {
+            require(_quoteCurrency == token0, "quote needs to be token0");
+        } else {
+            revert("No matching token");
+        }
+
         pool = _pool;
         baseCurrency = _baseCurrency;
         quoteCurrency = _quoteCurrency;
@@ -48,6 +74,9 @@ contract VolOracle {
         period = _period;
     }
 
+    /**
+     * @notice Commits an oracle update
+     */
     function commit() external {
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
         require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
@@ -66,11 +95,19 @@ contract VolOracle {
         accum.lastTimestamp = commitTimestamp;
     }
 
-    function stdev() external view returns (uint256) {
+    /**
+     * @notice Returns the standard deviation of the base currency
+     * @return standardDeviation is the standard deviation of the asset
+     */
+    function stdev() external view returns (uint256 standardDeviation) {
         return Welford.getStdev(accumulator.count, accumulator.m2);
     }
 
-    function twap() public view returns (uint256) {
+    /**
+     * @notice Returns the TWAP for the entire Uniswap observation period
+     * @return price is the TWAP quoted in quote currency
+     */
+    function twap() public view returns (uint256 price) {
         (
             int56 oldestTickCumulative,
             int56 newestTickCumulative,
@@ -95,6 +132,10 @@ contract VolOracle {
             );
     }
 
+    /**
+     * @notice Gets the time weighted average tick
+     * @return timeWeightedAverageTick is the tick which was resolved to be the time-weighted average
+     */
     function getTimeWeightedAverageTick(
         int56 olderTickCumulative,
         int56 newerTickCumulative,
@@ -110,6 +151,12 @@ contract VolOracle {
         return _timeWeightedAverageTick;
     }
 
+    /**
+     * @notice Gets the tick cumulatives which is the tick * seconds
+     * @return oldestTickCumulative is the tick cumulative at last index of the observations array
+     * @return newestTickCumulative is the tick cumulative at the first index of the observations array
+     * @return duration is the TWAP duration determined by the difference between newest-oldest
+     */
     function getTickCumulatives()
         private
         view
@@ -138,6 +185,11 @@ contract VolOracle {
         return (_oldestTickCumulative, _newestTickCumulative, _duration);
     }
 
+    /**
+     * @notice Returns the closest period from the current block.timestamp
+     * @return closestPeriod is the closest period timestamp
+     * @return gapFromPeriod is the gap between now and the closest period: abs(periodTimestamp - block.timestamp)
+     */
     function secondsFromPeriod()
         private
         view
