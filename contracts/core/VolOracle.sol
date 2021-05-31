@@ -49,8 +49,8 @@ contract VolOracle {
     }
 
     function commit() external onlyCommitPhase {
-        uint256 rem = block.timestamp % period;
-        require(rem < commitPhaseDuration, "Not commit phase");
+        (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
+        require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
 
         uint256 price = twap();
         Accumulator storage accum = accumulator;
@@ -59,13 +59,6 @@ contract VolOracle {
 
         (uint256 newCount, uint256 newMean, uint256 newM2) =
             Welford.update(accum.count, accum.mean, accum.m2, price);
-
-        uint32 commitTimestamp;
-        if (rem < period / 2) {
-            commitTimestamp = uint32(block.timestamp - rem);
-        } else {
-            commitTimestamp = uint32(block.timestamp + rem);
-        }
 
         accum.count = uint16(newCount);
         accum.mean = uint96(newMean);
@@ -108,8 +101,13 @@ contract VolOracle {
             );
     }
 
-    function topOfPeriod() internal view returns (uint256) {
-        return block.timestamp - (block.timestamp % period);
+    function secondsFromPeriod() private view returns (uint32, uint32) {
+        uint32 timestamp = uint32(block.timestamp);
+        uint32 rem = timestamp % period;
+        if (rem < period / 2) {
+            return (timestamp - rem, rem);
+        }
+        return (timestamp + period - rem, period - rem);
     }
 
     modifier onlyCommitPhase {
