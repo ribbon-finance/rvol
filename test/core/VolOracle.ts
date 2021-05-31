@@ -28,7 +28,7 @@ describe("VolOracle", () => {
 
   describe("twap", () => {
     it("gets the TWAP for a period", async function () {
-      // assert.equal((await oracle.twap()).toString(), "2428946467");
+      assert.equal((await oracle.twap()).toString(), "2427732358");
     });
   });
 
@@ -47,16 +47,16 @@ describe("VolOracle", () => {
 
       await oracle.commit();
       stdev = await oracle.stdev();
-      assert.equal(stdev.toNumber(), 3153371);
+      assert.equal(stdev.toNumber(), 0);
     });
 
     it("reverts when out of commit phase", async function () {
       const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
 
-      await time.increaseTo(topOfPeriod - COMMIT_PHASE_DURATION - 1);
+      await time.increaseTo(topOfPeriod - COMMIT_PHASE_DURATION - 10);
       await expect(oracle.commit()).to.be.revertedWith("Not commit phase");
 
-      await time.increaseTo(topOfPeriod + COMMIT_PHASE_DURATION + 1);
+      await time.increaseTo(topOfPeriod + COMMIT_PHASE_DURATION + 10);
       await expect(oracle.commit()).to.be.revertedWith("Not commit phase");
     });
 
@@ -78,12 +78,14 @@ describe("VolOracle", () => {
       const tx1 = await oracle.commit();
       const receipt1 = await tx1.wait();
       assert.isAtMost(receipt1.gasUsed.toNumber(), 96000);
+      console.log(receipt1.gasUsed.toNumber());
 
       await time.increaseTo(topOfPeriod + PERIOD);
 
       const tx2 = await oracle.commit();
       const receipt2 = await tx2.wait();
-      assert.isAtMost(receipt2.gasUsed.toNumber(), 50000);
+      console.log(receipt2.gasUsed.toNumber());
+      assert.isAtMost(receipt2.gasUsed.toNumber(), 46000);
     });
   });
 

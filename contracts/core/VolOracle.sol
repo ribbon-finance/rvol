@@ -71,24 +71,18 @@ contract VolOracle {
     }
 
     function twap() public view returns (uint256) {
-        // Space out the seconds by the hour
-        uint32[] memory secondAgos = new uint32[](2);
-        secondAgos[0] = twapDuration;
-        secondAgos[1] = 0;
-
-        (int56[] memory tickCumulatives, ) =
-            IUniswapV3Pool(pool).observe(secondAgos);
-
-        int56 tickCumulativesDelta = tickCumulatives[1] - tickCumulatives[0];
+        (
+            int56 oldestTickCumulative,
+            int56 newestTickCumulative,
+            uint32 duration
+        ) = getTickCumulatives();
 
         int24 timeWeightedAverageTick =
-            int24(tickCumulativesDelta / twapDuration);
-
-        // Always round to negative infinity
-        if (
-            tickCumulativesDelta < 0 &&
-            (tickCumulativesDelta % twapDuration != 0)
-        ) timeWeightedAverageTick--;
+            getTimeWeightedAverageTick(
+                oldestTickCumulative,
+                newestTickCumulative,
+                duration
+            );
 
         uint128 quoteAmount = uint128(1 * 10**baseCurrencyDecimals);
 
@@ -99,6 +93,49 @@ contract VolOracle {
                 baseCurrency,
                 quoteCurrency
             );
+    }
+
+    function getTimeWeightedAverageTick(
+        int56 olderTickCumulative,
+        int56 newerTickCumulative,
+        uint32 duration
+    ) private pure returns (int24 timeWeightedAverageTick) {
+        int56 tickCumulativesDelta = newerTickCumulative - olderTickCumulative;
+        int24 _timeWeightedAverageTick = int24(tickCumulativesDelta / duration);
+
+        // Always round to negative infinity
+        if (tickCumulativesDelta < 0 && (tickCumulativesDelta % duration != 0))
+            _timeWeightedAverageTick--;
+
+        return _timeWeightedAverageTick;
+    }
+
+    function getTickCumulatives()
+        private
+        view
+        returns (
+            int56 oldestTickCumulative,
+            int56 newestTickCumulative,
+            uint32 duration
+        )
+    {
+        IUniswapV3Pool uniPool = IUniswapV3Pool(pool);
+
+        (, , uint16 newestIndex, uint16 observationCardinality, , , ) =
+            uniPool.slot0();
+
+        // Get the latest observation
+        (uint32 newestTimestamp, int56 _newestTickCumulative, , ) =
+            uniPool.observations(newestIndex);
+
+        // Get the oldest observation
+        uint256 oldestIndex = (newestIndex + 1) % observationCardinality;
+        (uint32 oldestTimestamp, int56 _oldestTickCumulative, , ) =
+            uniPool.observations(oldestIndex);
+
+        uint32 _duration = newestTimestamp - oldestTimestamp;
+
+        return (_oldestTickCumulative, _newestTickCumulative, _duration);
     }
 
     function secondsFromPeriod() private view returns (uint32, uint32) {
