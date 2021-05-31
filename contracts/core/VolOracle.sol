@@ -48,7 +48,7 @@ contract VolOracle {
         period = _period;
     }
 
-    function commit() external onlyCommitPhase {
+    function commit() external {
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
         require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
 
@@ -138,16 +138,16 @@ contract VolOracle {
         return (_oldestTickCumulative, _newestTickCumulative, _duration);
     }
 
-    function secondsFromPeriod() private view returns (uint32, uint32) {
+    function secondsFromPeriod()
+        private
+        view
+        returns (uint32 closestPeriod, uint32 gapFromPeriod)
+    {
         uint32 timestamp = uint32(block.timestamp);
         uint32 rem = timestamp % period;
         if (rem < period / 2) {
             return (timestamp - rem, rem);
         }
         return (timestamp + period - rem, period - rem);
-    }
-
-    modifier onlyCommitPhase {
-        _;
     }
 }

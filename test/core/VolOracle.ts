@@ -77,7 +77,7 @@ describe("VolOracle", () => {
       // First time is more expensive
       const tx1 = await oracle.commit();
       const receipt1 = await tx1.wait();
-      assert.isAtMost(receipt1.gasUsed.toNumber(), 96000);
+      assert.isAtMost(receipt1.gasUsed.toNumber(), 60000);
       console.log(receipt1.gasUsed.toNumber());
 
       await time.increaseTo(topOfPeriod + PERIOD);
@@ -85,7 +85,7 @@ describe("VolOracle", () => {
       const tx2 = await oracle.commit();
       const receipt2 = await tx2.wait();
       console.log(receipt2.gasUsed.toNumber());
-      assert.isAtMost(receipt2.gasUsed.toNumber(), 46000);
+      assert.isAtMost(receipt2.gasUsed.toNumber(), 42000);
     });
   });
 
