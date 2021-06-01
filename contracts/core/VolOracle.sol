@@ -16,7 +16,7 @@ contract VolOracle {
     address public immutable quoteCurrency;
     uint32 public immutable period;
     uint8 private immutable baseCurrencyDecimals;
-    uint256 private constant commitPhaseDuration = 1800; // 30 minutes from every period
+    uint256 internal constant commitPhaseDuration = 1800; // 30 minutes from every period
 
     /**
      * Storage
@@ -191,7 +191,7 @@ contract VolOracle {
      * @return gapFromPeriod is the gap between now and the closest period: abs(periodTimestamp - block.timestamp)
      */
     function secondsFromPeriod()
-        private
+        internal
         view
         returns (uint32 closestPeriod, uint32 gapFromPeriod)
     {

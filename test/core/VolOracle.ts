@@ -3,6 +3,8 @@ import { assert, expect } from "chai";
 import { Contract } from "@ethersproject/contracts";
 import moment from "moment-timezone";
 import * as time from "../helpers/time";
+import * as math from "../helpers/math";
+import { BigNumber } from "@ethersproject/bignumber";
 
 const { provider, getContractFactory } = ethers;
 
@@ -10,6 +12,8 @@ moment.tz.setDefault("UTC");
 
 describe("VolOracle", () => {
   let oracle: Contract;
+  let mockOracle: Contract;
+
   const PERIOD = 43200; // 12 hours
   const COMMIT_PHASE_DURATION = 1800; // 30 mins
 
@@ -22,7 +26,10 @@ describe("VolOracle", () => {
     const usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
     const VolOracle = await getContractFactory("VolOracle");
+    const TestVolOracle = await getContractFactory("TestVolOracle");
+
     oracle = await VolOracle.deploy(ethusdcPool, weth, usdc, PERIOD);
+    mockOracle = await TestVolOracle.deploy(ethusdcPool, weth, usdc, PERIOD);
     // oracle = await VolOracle.deploy(ethusdcPool, weth, usdc);
   });
 
@@ -84,6 +91,28 @@ describe("VolOracle", () => {
       const tx2 = await oracle.commit();
       const receipt2 = await tx2.wait();
       assert.isAtMost(receipt2.gasUsed.toNumber(), 42000);
+    });
+
+    it("updates the stdev", async function () {
+      const values = [
+        BigNumber.from("2000000000"),
+        BigNumber.from("2100000000"),
+      ];
+      await mockOracle.setPrice(values[0]);
+      const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
+      await time.increaseTo(topOfPeriod);
+      await mockOracle.mockCommit();
+      let stdev = await mockOracle.stdev();
+      assert.equal(stdev.toNumber(), 0);
+
+      await mockOracle.setPrice(values[1]);
+      const nextTopOfPeriod = (await getTopOfPeriod()) + PERIOD;
+      await time.increaseTo(nextTopOfPeriod);
+      await mockOracle.mockCommit();
+      stdev = await mockOracle.stdev();
+      assert.equal(stdev.toString(), "50000000");
+
+      assert.equal(stdev.toNumber(), math.stdev(values));
     });
   });
 
