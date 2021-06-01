@@ -6,6 +6,7 @@ import * as time from "../helpers/time";
 import * as math from "../helpers/math";
 import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { parseEther } from "@ethersproject/units";
 
 const { provider, getContractFactory } = ethers;
 
@@ -57,40 +58,11 @@ describe("VolOracle", () => {
       } = await oracle.accumulator();
       assert.equal(count1, 1);
       assert.equal(timestamp1, topOfPeriod);
-      assert.equal(mean1.toString(), "2427732358");
+      assert.equal(mean1.toNumber(), 0);
       assert.equal(m2_1.toNumber(), 0);
 
       let stdev = await oracle.stdev();
       assert.equal(stdev.toNumber(), 0);
-
-      await time.increaseTo(topOfPeriod + PERIOD + 1);
-
-      const tx = await oracle.commit();
-
-      const {
-        count: count2,
-        lastTimestamp: timestamp2,
-        mean: mean2,
-        m2: m2_2,
-      } = await oracle.accumulator();
-      assert.equal(count2, 2);
-      assert.equal(timestamp2, topOfPeriod + PERIOD);
-      assert.equal(mean2.toNumber(), "2427732358");
-      assert.equal(m2_2.toNumber(), 0);
-
-      stdev = await oracle.stdev();
-      assert.equal(stdev.toNumber(), 0);
-
-      await expect(tx)
-        .to.emit(oracle, "Commit")
-        .withArgs(
-          count2,
-          topOfPeriod + PERIOD,
-          "2427732358",
-          "0",
-          "2427732358",
-          signer.address
-        );
     });
 
     it("reverts when out of commit phase", async function () {
@@ -139,41 +111,68 @@ describe("VolOracle", () => {
       // First time is more expensive
       const tx1 = await oracle.commit();
       const receipt1 = await tx1.wait();
-      assert.isAtMost(receipt1.gasUsed.toNumber(), 61000);
+      assert.isAtMost(receipt1.gasUsed.toNumber(), 84000);
 
       await time.increaseTo(topOfPeriod + PERIOD);
 
       const tx2 = await oracle.commit();
       const receipt2 = await tx2.wait();
-      assert.isAtMost(receipt2.gasUsed.toNumber(), 44000);
+      assert.isAtMost(receipt2.gasUsed.toNumber(), 46000);
     });
 
     it("updates the stdev", async function () {
       const values = [
         BigNumber.from("2000000000"),
         BigNumber.from("2100000000"),
+        BigNumber.from("2200000000"),
+        BigNumber.from("2150000000"),
       ];
-      await mockOracle.setPrice(values[0]);
-      const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
-      await time.increaseTo(topOfPeriod);
-      await mockOracle.mockCommit();
-      let stdev = await mockOracle.stdev();
-      assert.equal(stdev.toNumber(), 0);
+      const stdevs = [
+        BigNumber.from("0"),
+        BigNumber.from("20815054591668398"),
+        BigNumber.from("20192866474873522"),
+        BigNumber.from("22905638409289836"),
+      ];
 
-      await mockOracle.setPrice(values[1]);
-      const nextTopOfPeriod = (await getTopOfPeriod()) + PERIOD;
-      await time.increaseTo(nextTopOfPeriod);
-      await mockOracle.mockCommit();
-      stdev = await mockOracle.stdev();
-      assert.equal(stdev.toString(), "50000000");
+      for (let i = 0; i < values.length; i++) {
+        await mockOracle.setPrice(values[i]);
+        const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
+        await time.increaseTo(topOfPeriod);
+        await mockOracle.mockCommit();
+        let stdev = await mockOracle.stdev();
+        assert.equal(stdev.toString(), stdevs[i].toString());
+      }
+    });
+  });
 
-      const { count, lastTimestamp, mean, m2 } = await mockOracle.accumulator();
-      assert.equal(count, 2);
-      assert.equal(lastTimestamp, nextTopOfPeriod);
-      assert.equal(mean.toString(), "2050000000");
-      assert.equal(m2.toString(), "5000000000000000");
+  describe("annualizedStdev", () => {
+    it("returns the annual stdev", async function () {
+      const values = [
+        BigNumber.from("2000000000"),
+        BigNumber.from("2100000000"),
+        BigNumber.from("2200000000"),
+        BigNumber.from("2150000000"),
+        BigNumber.from("2250000000"),
+        BigNumber.from("2350000000"),
+        BigNumber.from("2450000000"),
+        BigNumber.from("2550000000"),
+        BigNumber.from("2350000000"),
+        BigNumber.from("2450000000"),
+        BigNumber.from("2250000000"),
+        BigNumber.from("2250000000"),
+        BigNumber.from("2650000000"),
+      ];
 
-      assert.equal(stdev.toNumber(), math.stdev(values));
+      for (let i = 0; i < values.length; i++) {
+        await mockOracle.setPrice(values[i]);
+        const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
+        await time.increaseTo(topOfPeriod);
+        await mockOracle.mockCommit();
+      }
+      assert.equal(
+        (await mockOracle.annualizedStdev()).toString(),
+        "281128406353999938"
+      );
     });
   });
 

@@ -1,4 +1,6 @@
 import { BigNumber } from "ethers";
+import { BigNumber as BigNum } from "bignumber.js";
+import { parseEther } from "ethers/lib/utils";
 
 export const stdev = (values: BigNumber[]) => {
   const sum = values.reduce((a, b) => {
@@ -13,5 +15,33 @@ export const stdev = (values: BigNumber[]) => {
     return a.add(errorSquared);
   }, BigNumber.from(0));
 
-  return Math.sqrt(sumOfErrors.div(len).toNumber());
+  // Using bignumber.js because it has the sqrt function
+  const intermediate = new BigNum(sumOfErrors.div(len).toString())
+    .sqrt()
+    .integerValue()
+    .toString();
+
+  return BigNumber.from(intermediate);
+};
+
+export const pricesToReturns = (values: BigNumber[]) => {
+  const returns = values.map((val, index) => {
+    if (index === 0) return BigNumber.from(0);
+    return wdiv(val, values[index - 1]);
+  });
+  return returns.filter((r) => !r.isZero());
+};
+
+export const wdiv = (x: BigNumber, y: BigNumber) => {
+  return x
+    .mul(parseEther("1"))
+    .add(y.div(BigNumber.from("2")))
+    .div(y);
+};
+
+export const wmul = (x: BigNumber, y: BigNumber) => {
+  return x
+    .mul(y)
+    .add(parseEther("1").div(BigNumber.from("2")))
+    .div(parseEther("1"));
 };

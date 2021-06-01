@@ -2,12 +2,17 @@
 pragma solidity 0.7.3;
 
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
+import {DSMath} from "../libraries/DSMath.sol";
 import {OracleLibrary} from "../libraries/OracleLibrary.sol";
 import {Welford} from "../libraries/Welford.sol";
+import {Math} from "../libraries/Math.sol";
 import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
 import "hardhat/console.sol";
 
-contract VolOracle {
+contract VolOracle is DSMath {
+    using SafeMath for uint256;
+
     /**
      * Immutables
      */
@@ -15,6 +20,7 @@ contract VolOracle {
     address public immutable baseCurrency;
     address public immutable quoteCurrency;
     uint32 public immutable period;
+    uint256 public immutable annualizationConstant;
     uint8 private immutable baseCurrencyDecimals;
     uint256 internal constant commitPhaseDuration = 1800; // 30 minutes from every period
 
@@ -35,6 +41,8 @@ contract VolOracle {
 
     /// @dev Stores the latest data that helps us compute the standard deviation of the seen dataset.
     Accumulator public accumulator;
+
+    uint256 public lastPrice;
 
     /***
      * Events
@@ -85,6 +93,12 @@ contract VolOracle {
         quoteCurrency = _quoteCurrency;
         baseCurrencyDecimals = IERC20Detailed(_baseCurrency).decimals();
         period = _period;
+
+        // 31536000 seconds in a year
+        // divided by the period duration
+        // For e.g. if period = 1 day = 86400 seconds
+        // It would be 31536000/86400 = 365 days.
+        annualizationConstant = Math.sqrt(uint256(31536000).div(_period));
     }
 
     /**
@@ -95,6 +109,8 @@ contract VolOracle {
         require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
 
         uint256 price = twap();
+        uint256 _lastPrice = lastPrice;
+        uint256 periodReturn = _lastPrice > 0 ? wdiv(price, _lastPrice) : 0;
         Accumulator storage accum = accumulator;
 
         require(
@@ -104,12 +120,13 @@ contract VolOracle {
         );
 
         (uint256 newCount, uint256 newMean, uint256 newM2) =
-            Welford.update(accum.count, accum.mean, accum.m2, price);
+            Welford.update(accum.count, accum.mean, accum.m2, periodReturn);
 
         accum.count = uint16(newCount);
         accum.mean = uint96(newMean);
         accum.m2 = uint112(newM2);
         accum.lastTimestamp = commitTimestamp;
+        lastPrice = price;
 
         emit Commit(
             uint16(newCount),
@@ -122,11 +139,22 @@ contract VolOracle {
     }
 
     /**
-     * @notice Returns the standard deviation of the base currency
+     * @notice Returns the standard deviation of the base currency in 10**18 i.e. 5*10**18 = 0.5%
      * @return standardDeviation is the standard deviation of the asset
      */
     function stdev() external view returns (uint256 standardDeviation) {
         return Welford.getStdev(accumulator.count, accumulator.m2);
+    }
+
+    /**
+     * @notice Returns the annualized standard deviation of the base currency in 10**18 i.e. 5*10**18 = 0.5%
+     * @return annualStdev is the annualized standard deviation of the asset
+     */
+    function annualizedStdev() external view returns (uint256 annualStdev) {
+        return
+            Welford.getStdev(accumulator.count, accumulator.m2).mul(
+                annualizationConstant
+            );
     }
 
     /**
