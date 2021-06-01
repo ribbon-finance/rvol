@@ -135,6 +135,12 @@ describe("VolOracle", () => {
       stdev = await mockOracle.stdev();
       assert.equal(stdev.toString(), "50000000");
 
+      const { count, lastTimestamp, mean, m2 } = await mockOracle.accumulator();
+      assert.equal(count, 2);
+      assert.equal(lastTimestamp, nextTopOfPeriod);
+      assert.equal(mean.toString(), "2050000000");
+      assert.equal(m2.toString(), "5000000000000000");
+
       assert.equal(stdev.toNumber(), math.stdev(values));
     });
   });

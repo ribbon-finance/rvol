@@ -37,7 +37,7 @@ library Welford {
     /**
      * @notice Calculate the variance using the existing tuple (count, mean, m2)
      * @param count is the length of the dataset
-     * @param m2 is the delta value
+     * @param m2 is the sum of square errors
      */
     function getVariance(uint256 count, uint256 m2)
         internal
@@ -50,7 +50,7 @@ library Welford {
     /**
      * @notice Calculate the standard deviation using the existing tuple (count, mean, m2)
      * @param count is the length of the dataset
-     * @param m2 is the delta value
+     * @param m2 is the sum of square errors
      */
     function getStdev(uint256 count, uint256 m2)
         internal
