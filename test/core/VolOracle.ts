@@ -90,6 +90,25 @@ describe("VolOracle", () => {
       await expect(oracle.commit()).to.be.revertedWith("Not commit phase");
     });
 
+    it("reverts when there is an existing commit for period", async function () {
+      const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
+      await time.increaseTo(topOfPeriod);
+
+      await oracle.commit();
+
+      // Cannot commit immediately after
+      await expect(oracle.commit()).to.be.revertedWith("Committed");
+
+      // Cannot commit before commit phase begins
+      const beforePeriod = topOfPeriod + 100;
+      await time.increaseTo(beforePeriod);
+      await expect(oracle.commit()).to.be.revertedWith("Committed");
+
+      const nextPeriod = topOfPeriod + PERIOD - COMMIT_PHASE_DURATION;
+      await time.increaseTo(nextPeriod);
+      await oracle.commit();
+    });
+
     it("commits when within commit phase", async function () {
       const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
       await time.increaseTo(topOfPeriod - COMMIT_PHASE_DURATION);

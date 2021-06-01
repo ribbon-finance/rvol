@@ -84,7 +84,11 @@ contract VolOracle {
         uint256 price = twap();
         Accumulator storage accum = accumulator;
 
-        require(block.timestamp >= accum.lastTimestamp + period, "Committed");
+        require(
+            block.timestamp >=
+                accum.lastTimestamp + period - commitPhaseDuration,
+            "Committed"
+        );
 
         (uint256 newCount, uint256 newMean, uint256 newM2) =
             Welford.update(accum.count, accum.mean, accum.m2, price);
