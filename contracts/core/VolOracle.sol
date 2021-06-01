@@ -36,6 +36,19 @@ contract VolOracle {
     /// @dev Stores the latest data that helps us compute the standard deviation of the seen dataset.
     Accumulator public accumulator;
 
+    /***
+     * Events
+     */
+
+    event Commit(
+        uint16 count,
+        uint32 commitTimestamp,
+        uint96 mean,
+        uint112 m2,
+        uint256 newValue,
+        address committer
+    );
+
     /**
      * @notice Creates an volatility oracle for a pool
      * @param _pool is the Uniswap v3 pool
@@ -97,6 +110,15 @@ contract VolOracle {
         accum.mean = uint96(newMean);
         accum.m2 = uint112(newM2);
         accum.lastTimestamp = commitTimestamp;
+
+        emit Commit(
+            uint16(newCount),
+            uint32(commitTimestamp),
+            uint96(newMean),
+            uint112(newM2),
+            price,
+            msg.sender
+        );
     }
 
     /**

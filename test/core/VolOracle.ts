@@ -5,6 +5,7 @@ import moment from "moment-timezone";
 import * as time from "../helpers/time";
 import * as math from "../helpers/math";
 import { BigNumber } from "@ethersproject/bignumber";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 const { provider, getContractFactory } = ethers;
 
@@ -13,20 +14,21 @@ moment.tz.setDefault("UTC");
 describe("VolOracle", () => {
   let oracle: Contract;
   let mockOracle: Contract;
+  let signer: SignerWithAddress;
 
   const PERIOD = 43200; // 12 hours
   const COMMIT_PHASE_DURATION = 1800; // 30 mins
+  const ethusdcPool = "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8";
+  // const wbtcusdcPool = "0x99ac8cA7087fA4A2A1FB6357269965A2014ABc35";
+
+  const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+  // const wbtc = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
+  const usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
   before(async function () {
-    const ethusdcPool = "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8";
-    // const wbtcusdcPool = "0x99ac8cA7087fA4A2A1FB6357269965A2014ABc35";
-
-    const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-    // const wbtc = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
-    const usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-
-    const VolOracle = await getContractFactory("VolOracle");
-    const TestVolOracle = await getContractFactory("TestVolOracle");
+    [signer] = await ethers.getSigners();
+    const VolOracle = await getContractFactory("VolOracle", signer);
+    const TestVolOracle = await getContractFactory("TestVolOracle", signer);
 
     oracle = await VolOracle.deploy(ethusdcPool, weth, usdc, PERIOD);
     mockOracle = await TestVolOracle.deploy(ethusdcPool, weth, usdc, PERIOD);
@@ -63,7 +65,7 @@ describe("VolOracle", () => {
 
       await time.increaseTo(topOfPeriod + PERIOD + 1);
 
-      await oracle.commit();
+      const tx = await oracle.commit();
 
       const {
         count: count2,
@@ -78,6 +80,17 @@ describe("VolOracle", () => {
 
       stdev = await oracle.stdev();
       assert.equal(stdev.toNumber(), 0);
+
+      await expect(tx)
+        .to.emit(oracle, "Commit")
+        .withArgs(
+          count2,
+          topOfPeriod + PERIOD,
+          "2427732358",
+          "0",
+          "2427732358",
+          signer.address
+        );
     });
 
     it("reverts when out of commit phase", async function () {
@@ -126,13 +139,13 @@ describe("VolOracle", () => {
       // First time is more expensive
       const tx1 = await oracle.commit();
       const receipt1 = await tx1.wait();
-      assert.isAtMost(receipt1.gasUsed.toNumber(), 60000);
+      assert.isAtMost(receipt1.gasUsed.toNumber(), 61000);
 
       await time.increaseTo(topOfPeriod + PERIOD);
 
       const tx2 = await oracle.commit();
       const receipt2 = await tx2.wait();
-      assert.isAtMost(receipt2.gasUsed.toNumber(), 42000);
+      assert.isAtMost(receipt2.gasUsed.toNumber(), 44000);
     });
 
     it("updates the stdev", async function () {
