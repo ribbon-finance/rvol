@@ -43,16 +43,39 @@ describe("VolOracle", () => {
     time.revertToSnapshotAfterEach();
 
     it("commits the twap", async function () {
-      const latestTimestamp = (await provider.getBlock("latest")).timestamp;
-      const topOfPeriod = latestTimestamp - (latestTimestamp % PERIOD);
-
+      const topOfPeriod = await getTopOfPeriod();
+      await time.increaseTo(topOfPeriod);
       await oracle.commit();
+
+      const {
+        count: count1,
+        lastTimestamp: timestamp1,
+        mean: mean1,
+        m2: m2_1,
+      } = await oracle.accumulator();
+      assert.equal(count1, 1);
+      assert.equal(timestamp1, topOfPeriod);
+      assert.equal(mean1.toString(), "2427732358");
+      assert.equal(m2_1.toNumber(), 0);
+
       let stdev = await oracle.stdev();
       assert.equal(stdev.toNumber(), 0);
 
       await time.increaseTo(topOfPeriod + PERIOD + 1);
 
       await oracle.commit();
+
+      const {
+        count: count2,
+        lastTimestamp: timestamp2,
+        mean: mean2,
+        m2: m2_2,
+      } = await oracle.accumulator();
+      assert.equal(count2, 2);
+      assert.equal(timestamp2, topOfPeriod + PERIOD);
+      assert.equal(mean2.toNumber(), "2427732358");
+      assert.equal(m2_2.toNumber(), 0);
+
       stdev = await oracle.stdev();
       assert.equal(stdev.toNumber(), 0);
     });

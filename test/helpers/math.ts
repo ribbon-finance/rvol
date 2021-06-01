@@ -13,7 +13,5 @@ export const stdev = (values: BigNumber[]) => {
     return a.add(errorSquared);
   }, BigNumber.from(0));
 
-  console.log(mean.toString());
-
   return Math.sqrt(sumOfErrors.div(len).toNumber());
 };
