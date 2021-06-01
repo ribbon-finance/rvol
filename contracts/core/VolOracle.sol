@@ -29,7 +29,7 @@ contract VolOracle {
         uint32 lastTimestamp;
         // Smaller size because prices denominated in USDC, max 7.9e27
         uint96 mean;
-        // Stores the result of multiplicating prices
+        // Stores the sum of squared errors
         uint112 m2;
     }
 
