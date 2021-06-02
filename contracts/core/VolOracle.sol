@@ -110,7 +110,10 @@ contract VolOracle is DSMath {
 
         uint256 price = twap();
         uint256 _lastPrice = lastPrice;
-        uint256 periodReturn = _lastPrice > 0 ? wdiv(price, _lastPrice) : 0;
+        // Result of the division is 10**18, but we scale down to 10**10 so it fits into uint112
+        uint256 periodReturn =
+            _lastPrice > 0 ? wdiv(price, _lastPrice).div(10**10) : 0;
+
         Accumulator storage accum = accumulator;
 
         require(
@@ -139,7 +142,7 @@ contract VolOracle is DSMath {
     }
 
     /**
-     * @notice Returns the standard deviation of the base currency in 10**18 i.e. 5*10**18 = 0.5%
+     * @notice Returns the standard deviation of the base currency in 10**8 i.e. 5*10**8 = 0.5%
      * @return standardDeviation is the standard deviation of the asset
      */
     function stdev() public view returns (uint256 standardDeviation) {
@@ -147,7 +150,7 @@ contract VolOracle is DSMath {
     }
 
     /**
-     * @notice Returns the annualized standard deviation of the base currency in 10**18 i.e. 5*10**18 = 0.5%
+     * @notice Returns the annualized standard deviation of the base currency in 10**8 i.e. 5*10**8 = 0.5%
      * @return annualStdev is the annualized standard deviation of the asset
      */
     function annualizedStdev() public view returns (uint256 annualStdev) {
