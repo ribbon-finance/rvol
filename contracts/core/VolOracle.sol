@@ -178,6 +178,8 @@ contract VolOracle is DSMath {
                 duration
             );
 
+        // Get the price of a unit of asset
+        // For ETH, it would be 1 ether (10**18)
         uint128 quoteAmount = uint128(1 * 10**baseCurrencyDecimals);
 
         return
