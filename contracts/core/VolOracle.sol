@@ -8,7 +8,6 @@ import {OracleLibrary} from "../libraries/OracleLibrary.sol";
 import {Welford} from "../libraries/Welford.sol";
 import {Math} from "../libraries/Math.sol";
 import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
-import "hardhat/console.sol";
 
 contract VolOracle is DSMath {
     using SafeMath for uint256;

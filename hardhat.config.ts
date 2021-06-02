@@ -1,4 +1,5 @@
 import "@nomiclabs/hardhat-waffle";
+import "hardhat-log-remover";
 
 require("dotenv").config();
 

@@ -35,7 +35,8 @@
     "lint:test:fix": "yarn lint:test --fix",
     "lint:test:prettier": "prettier --write 'test/**/*.ts'",
     "lint:sol": "solhint -f table contracts/**/*.sol",
-    "lint:sol:prettier": "prettier --write \"contracts/**/*.sol\""
+    "lint:sol:prettier": "prettier --write \"contracts/**/*.sol\"",
+    "clean-logs": "yarn run hardhat remove-logs"
   },
   "husky": {
     "hooks": {
@@ -59,6 +60,7 @@
   "license": "GPL-3.0-only",
   "dependencies": {
     "@uniswap/v3-core": "^1.0.0",
-    "@uniswap/v3-periphery": "^1.0.1"
+    "@uniswap/v3-periphery": "^1.0.1",
+    "hardhat-log-remover": "^2.0.2"
   }
 }

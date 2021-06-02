@@ -5,7 +5,6 @@ import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import {Welford} from "../libraries/Welford.sol";
 import {DSMath} from "../libraries/DSMath.sol";
 import {VolOracle} from "../core/VolOracle.sol";
-import "hardhat/console.sol";
 
 contract TestVolOracle is DSMath, VolOracle {
     using SafeMath for uint256;

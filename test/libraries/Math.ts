@@ -31,7 +31,7 @@ describe("Math", () => {
           BigNumber.from("2650000000"),
         ])
       );
-      assert.equal(gasUsed.toNumber(), 4926);
+      assert.equal(gasUsed.toNumber(), 4940);
       assert.equal(result.toString(), "68190148968167441");
     });
   });
@@ -39,7 +39,7 @@ describe("Math", () => {
   describe("sqrt", () => {
     it("gas", async function () {
       const prbGas = await testMath.testPRB(86400);
-      assert.equal(prbGas, 667);
+      assert.equal(prbGas.toNumber(), 681);
     });
   });
 });
