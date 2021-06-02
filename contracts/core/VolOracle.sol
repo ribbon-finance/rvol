@@ -41,6 +41,7 @@ contract VolOracle is DSMath {
     /// @dev Stores the latest data that helps us compute the standard deviation of the seen dataset.
     Accumulator public accumulator;
 
+    /// @dev Stores the last oracle TWAP price
     uint256 public lastPrice;
 
     /***
