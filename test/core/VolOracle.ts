@@ -3,10 +3,8 @@ import { assert, expect } from "chai";
 import { Contract } from "@ethersproject/contracts";
 import moment from "moment-timezone";
 import * as time from "../helpers/time";
-import * as math from "../helpers/math";
 import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { parseEther } from "@ethersproject/units";
 
 const { provider, getContractFactory } = ethers;
 
@@ -115,9 +113,10 @@ describe("VolOracle", () => {
 
       await time.increaseTo(topOfPeriod + PERIOD);
 
+      // Second time is cheaper
       const tx2 = await oracle.commit();
       const receipt2 = await tx2.wait();
-      assert.isAtMost(receipt2.gasUsed.toNumber(), 46000);
+      assert.isAtMost(receipt2.gasUsed.toNumber(), 47000);
     });
 
     it("updates the stdev", async function () {
@@ -129,9 +128,9 @@ describe("VolOracle", () => {
       ];
       const stdevs = [
         BigNumber.from("0"),
-        BigNumber.from("20815054591668398"),
-        BigNumber.from("20192866474873522"),
-        BigNumber.from("22905638409289836"),
+        BigNumber.from("52500000"),
+        BigNumber.from("49441450"),
+        BigNumber.from("44478303"),
       ];
 
       for (let i = 0; i < values.length; i++) {
@@ -169,10 +168,12 @@ describe("VolOracle", () => {
         await time.increaseTo(topOfPeriod);
         await mockOracle.mockCommit();
       }
+
+      assert.equal((await mockOracle.stdev()).toString(), "28044645"); // 0.28%
       assert.equal(
         (await mockOracle.annualizedStdev()).toString(),
-        "281128406353999938"
-      );
+        "757205415"
+      ); // 7.5% annually
     });
   });
 

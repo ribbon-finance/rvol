@@ -24,7 +24,9 @@ contract TestVolOracle is DSMath, VolOracle {
 
         uint256 price = mockTwap();
         uint256 _lastPrice = lastPrice;
-        uint256 periodReturn = _lastPrice > 0 ? wdiv(price, _lastPrice) : 0;
+        // Result of the division is 10**18, but we scale down to 10**10 so it fits into uint112
+        uint256 periodReturn =
+            _lastPrice > 0 ? wdiv(price, _lastPrice).div(10**10) : 0;
         Accumulator storage accum = accumulator;
 
         require(

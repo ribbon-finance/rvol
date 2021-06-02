@@ -2,10 +2,13 @@
 pragma solidity 0.7.3;
 
 import {Math} from "./Math.sol";
+import {SignedSafeMath} from "@openzeppelin/contracts/math/SignedSafeMath.sol";
 
 // REFERENCE
 // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
 library Welford {
+    using SignedSafeMath for int256;
+
     /**
      * @notice Performs an update of the tuple (count, mean, m2) using the new value
      * @param curCount is the current value for count
@@ -27,11 +30,15 @@ library Welford {
             uint256 m2
         )
     {
-        count = curCount + 1;
-        uint256 delta = newValue - curMean;
-        mean = curMean + delta / count;
-        uint256 delta2 = newValue - mean;
-        m2 = curM2 + delta * delta2;
+        int256 _count = int256(curCount + 1);
+        int256 delta = int256(newValue).sub(int256(curMean));
+        int256 _mean = int256(curMean).add(delta.div(_count));
+        int256 delta2 = int256(newValue).sub(_mean);
+        int256 _m2 = int256(curM2).add(delta.mul(delta2));
+
+        count = uint256(_count);
+        mean = uint256(_mean);
+        m2 = uint256(_m2);
     }
 
     /**
@@ -39,12 +46,12 @@ library Welford {
      * @param count is the length of the dataset
      * @param m2 is the sum of square errors
      */
-    function getVariance(uint256 count, uint256 m2)
+    function variance(uint256 count, uint256 m2)
         internal
         pure
-        returns (uint256 variance)
+        returns (uint256)
     {
-        variance = m2 / count;
+        return m2 / count;
     }
 
     /**
@@ -52,11 +59,7 @@ library Welford {
      * @param count is the length of the dataset
      * @param m2 is the sum of square errors
      */
-    function getStdev(uint256 count, uint256 m2)
-        internal
-        pure
-        returns (uint256)
-    {
-        return Math.sqrt(getVariance(count, m2));
+    function stdev(uint256 count, uint256 m2) internal pure returns (uint256) {
+        return Math.sqrt(variance(count, m2));
     }
 }

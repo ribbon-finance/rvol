@@ -18,6 +18,6 @@ contract TestWelford {
     }
 
     function stdev() external view returns (uint256) {
-        return Welford.getStdev(count, m2);
+        return Welford.stdev(count, m2);
     }
 }
