@@ -145,7 +145,7 @@ contract VolOracle is DSMath {
      * @notice Returns the standard deviation of the base currency in 10**8 i.e. 5*10**8 = 0.5%
      * @return standardDeviation is the standard deviation of the asset
      */
-    function stdev() public view returns (uint256 standardDeviation) {
+    function vol() public view returns (uint256 standardDeviation) {
         return Welford.stdev(accumulator.count, accumulator.m2);
     }
 
@@ -153,7 +153,7 @@ contract VolOracle is DSMath {
      * @notice Returns the annualized standard deviation of the base currency in 10**8 i.e. 5*10**8 = 0.5%
      * @return annualStdev is the annualized standard deviation of the asset
      */
-    function annualizedStdev() public view returns (uint256 annualStdev) {
+    function annualizedVol() public view returns (uint256 annualStdev) {
         return
             Welford.stdev(accumulator.count, accumulator.m2).mul(
                 annualizationConstant

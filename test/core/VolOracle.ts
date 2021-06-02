@@ -59,7 +59,7 @@ describe("VolOracle", () => {
       assert.equal(mean1.toNumber(), 0);
       assert.equal(m2_1.toNumber(), 0);
 
-      let stdev = await oracle.stdev();
+      let stdev = await oracle.vol();
       assert.equal(stdev.toNumber(), 0);
     });
 
@@ -119,7 +119,7 @@ describe("VolOracle", () => {
       assert.isAtMost(receipt2.gasUsed.toNumber(), 47000);
     });
 
-    it("updates the stdev", async function () {
+    it("updates the vol", async function () {
       const values = [
         BigNumber.from("2000000000"),
         BigNumber.from("2100000000"),
@@ -138,13 +138,13 @@ describe("VolOracle", () => {
         const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
         await time.increaseTo(topOfPeriod);
         await mockOracle.mockCommit();
-        let stdev = await mockOracle.stdev();
+        let stdev = await mockOracle.vol();
         assert.equal(stdev.toString(), stdevs[i].toString());
       }
     });
   });
 
-  describe("annualizedStdev", () => {
+  describe("annualizedVol", () => {
     it("returns the annual stdev", async function () {
       const values = [
         BigNumber.from("2000000000"),
@@ -169,11 +169,8 @@ describe("VolOracle", () => {
         await mockOracle.mockCommit();
       }
 
-      assert.equal((await mockOracle.stdev()).toString(), "28044645"); // 0.28%
-      assert.equal(
-        (await mockOracle.annualizedStdev()).toString(),
-        "757205415"
-      ); // 7.5% annually
+      assert.equal((await mockOracle.vol()).toString(), "28044645"); // 0.28%
+      assert.equal((await mockOracle.annualizedVol()).toString(), "757205415"); // 7.5% annually
     });
   });
 
