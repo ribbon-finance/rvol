@@ -29,6 +29,8 @@ library Math {
         return sd;
     }
 
+    // solhint-disable-next-line
+    // Credit to Paul Razvan Berg https://github.com/hifi-finance/prb-math/blob/main/contracts/PRBMath.sol
     function sqrt(uint256 x) internal pure returns (uint256 result) {
         if (x == 0) {
             return 0;
@@ -75,31 +77,5 @@ library Math {
         result = (result + x / result) >> 1; // Seven iterations should be enough
         uint256 roundedDownResult = x / result;
         return result >= roundedDownResult ? roundedDownResult : result;
-    }
-
-    /**
-     * @dev sqrt calculates the square root of a given number x
-     * @dev for precision into decimals the number must first
-     * @dev be multiplied by the precision factor desired
-     * @param x uint256 number for the calculation of square root
-     */
-    function bsSqrt(uint256 x) internal pure returns (uint256) {
-        uint256 c = (x + 1) / 2;
-        uint256 b = x;
-        while (c < b) {
-            b = c;
-            c = (x / c + c) / 2;
-        }
-        return b;
-    }
-
-    /**
-     * @dev Counts square root of the number.
-     * Throws "invalid opcode" at uint(-1)
-     */
-    function hegicSqrt(uint256 x) internal pure returns (uint256 result) {
-        result = x;
-        uint256 k = (x + 1) >> 1;
-        while (k < result) (result, k) = (k, (x / k + k) >> 1);
     }
 }

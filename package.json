@@ -7,6 +7,7 @@
     "@types/node": "^15.6.1",
     "@typescript-eslint/eslint-plugin": "^4.25.0",
     "@typescript-eslint/parser": "^4.25.0",
+    "bignumber.js": "^9.0.1",
     "chai": "^4.3.4",
     "dotenv": "^10.0.0",
     "eslint": "^7.27.0",
@@ -17,6 +18,7 @@
     "hardhat": "^2.3.0",
     "husky": "^6.0.0",
     "lint-staged": "^11.0.0",
+    "moment-timezone": "^0.5.33",
     "prettier": "^2.3.0",
     "prettier-plugin-solidity": "^1.0.0-beta.11",
     "solhint": "3.3.4",
@@ -33,7 +35,8 @@
     "lint:test:fix": "yarn lint:test --fix",
     "lint:test:prettier": "prettier --write 'test/**/*.ts'",
     "lint:sol": "solhint -f table contracts/**/*.sol",
-    "lint:sol:prettier": "prettier --write \"contracts/**/*.sol\""
+    "lint:sol:prettier": "prettier --write \"contracts/**/*.sol\"",
+    "clean-logs": "yarn run hardhat remove-logs"
   },
   "husky": {
     "hooks": {
@@ -57,6 +60,7 @@
   "license": "GPL-3.0-only",
   "dependencies": {
     "@uniswap/v3-core": "^1.0.0",
-    "@uniswap/v3-periphery": "^1.0.1"
+    "@uniswap/v3-periphery": "^1.0.1",
+    "hardhat-log-remover": "^2.0.2"
   }
 }

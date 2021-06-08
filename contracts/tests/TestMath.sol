@@ -16,18 +16,6 @@ contract TestMath {
         gas = startgas - gasleft();
     }
 
-    function testBS(uint256 num) external view returns (uint256) {
-        uint256 startgas = gasleft();
-        num.bsSqrt();
-        return startgas - gasleft();
-    }
-
-    function testHegic(uint256 num) external view returns (uint256) {
-        uint256 startgas = gasleft();
-        num.hegicSqrt();
-        return startgas - gasleft();
-    }
-
     function testPRB(uint256 num) external view returns (uint256) {
         uint256 startgas = gasleft();
         num.sqrt();
