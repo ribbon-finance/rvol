@@ -4,10 +4,10 @@ pragma solidity 0.7.3;
 import {IVolatilityOracle} from "../interfaces/IVolatilityOracle.sol";
 import {IPriceOracle} from "../interfaces/IPriceOracle.sol";
 import {ICompToken} from "../interfaces/ICompToken.sol";
+import {IBlackScholes} from "../interfaces/IBlackScholes.sol";
 import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
 import {Math} from "../libraries/Math.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
-import {Welford} from "../libraries/Welford.sol";
 
 contract OptionsPremiumPricer {
     using SafeMath for uint256;
@@ -18,18 +18,23 @@ contract OptionsPremiumPricer {
     IVolatilityOracle public immutable volatilityOracle;
     IPriceOracle public immutable priceOracle;
     ICompToken public immutable cToken;
+    // IKEEP3rVolatility: 0xCCdfCB72753CfD55C5afF5d98eA5f9C43be9659d
+    IBlackScholes public immutable blackScholes;
 
     constructor(
         address _volatilityOracle,
         address _priceOracle,
-        address _cToken
+        address _cToken,
+        address _blackScholes
     ) {
         require(_volatilityOracle != address(0), "!_volatilityOracle");
         require(_priceOracle != address(0), "!_priceOracle");
         require(_cToken != address(0), "!_cToken");
+        require(_blackScholes != address(0), "!_blackScholes");
         volatilityOracle = IVolatilityOracle(_volatilityOracle);
         priceOracle = IPriceOracle(_priceOracle);
         cToken = ICompToken(_cToken);
+        blackScholes = IBlackScholes(_blackScholes);
     }
 
     /**
@@ -45,46 +50,12 @@ contract OptionsPremiumPricer {
         uint256 st,
         uint256 t,
         bool isPut
-    ) external returns (uint256 premium) {
+    ) external view returns (uint256 premium) {
         uint256 sp = priceOracle.latestAnswer().div(priceOracle.decimals());
         uint256 v = volatilityOracle.vol();
-        uint256 rf = getAssetRiskFreeRate();
 
-        if (sp > st) {
-            premium = getBlackScholesPrice(t, v, sp, st);
-            premium = isPut ? st - sp + premium : premium;
-        } else {
-            premium = getBlackScholesPrice(t, v, st, sp);
-            premium = isPut ? premium : st - sp + premium;
-        }
-    }
-
-    function getBlackScholesPrice(
-        uint256 t,
-        uint256 v,
-        uint256 sp,
-        uint256 st
-    ) private view returns (uint256) {
-        if (sp == st) {
-            return
-                (((((Math.LNX * sp) / 1e10) * v) / 1e18) *
-                    Math.sqrt2((1e18 * t) / 365)) / 1e9;
-        }
-        uint256 sigma = ((v**2) / 2);
-        uint256 sigmaB = 1e36;
-
-        uint256 sig = (((1e18 * sigma) / sigmaB) * t) / 365;
-
-        uint256 sSQRT = (v * Math.sqrt2((1e18 * t) / 365)) / 1e9;
-
-        uint256 d1 = (1e18 * Math.ln((Math.FIXED_1 * sp) / st)) / Math.FIXED_1;
-        d1 = ((d1 + sig) * 1e18) / sSQRT;
-        uint256 d2 = d1 - sSQRT;
-
-        uint256 cdfD1 = Math.ncdf((Math.FIXED_1 * d1) / 1e18);
-        uint256 cdfD2 = Math.cdf((int256(Math.FIXED_1) * int256(d2)) / 1e18);
-
-        return (sp * cdfD1) / 1e14 - (st * cdfD2) / 1e14;
+        (uint256 call, uint256 put) = blackScholes.quoteAll(t, v, sp, st);
+        premium = isPut ? put : call;
     }
 
     /**
@@ -106,6 +77,7 @@ contract OptionsPremiumPricer {
      * @notice Calculates the option's delta
      * Formula reference: `d_1` in https://www.investopedia.com/terms/b/blackscholes.asp
      * http://www.optiontradingpedia.com/options_delta.htm
+     * https://www.macroption.com/black-scholes-formula/
      * @param st is the strike price of the option
      * @param t is the time to expiration in years
      */
