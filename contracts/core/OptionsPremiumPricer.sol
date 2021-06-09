@@ -46,8 +46,6 @@ contract OptionsPremiumPricer {
         uint256 t,
         bool isPut
     ) external returns (uint256 premium) {
-        volatilityOracle.commit();
-
         uint256 sp = priceOracle.latestAnswer().div(priceOracle.decimals());
         uint256 v = volatilityOracle.vol();
         uint256 rf = getAssetRiskFreeRate();
