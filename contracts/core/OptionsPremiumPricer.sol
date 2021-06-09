@@ -43,16 +43,17 @@ contract OptionsPremiumPricer {
        https://www.macroption.com/black-scholes-formula/
        https://www.investopedia.com/terms/b/blackscholes.asp
      * @param st is the strike price of the option
-     * @param t is the time to expiration in years
+     * @param expiryTimestamp is the unix timestamp of expiry
      * @param isPut is whether the option is a put option
      */
     function getPremium(
         uint256 st,
-        uint256 t,
+        uint256 expiryTimestamp,
         bool isPut
     ) external view returns (uint256 premium) {
         uint256 sp = priceOracle.latestAnswer().div(priceOracle.decimals());
         uint256 v = volatilityOracle.vol();
+        uint256 t = expiryTimestamp.sub(block.timestamp).div(1 days);
 
         (uint256 call, uint256 put) = blackScholes.quoteAll(t, v, sp, st);
         premium = isPut ? put : call;
@@ -79,15 +80,16 @@ contract OptionsPremiumPricer {
      * http://www.optiontradingpedia.com/options_delta.htm
      * https://www.macroption.com/black-scholes-formula/
      * @param st is the strike price of the option
-     * @param t is the time to expiration in years
+     * @param expiryTimestamp is the unix timestamp of expiry
      */
-    function getOptionDelta(uint256 st, uint256 t)
+    function getOptionDelta(uint256 st, uint256 expiryTimestamp)
         external
         view
         returns (uint256 delta)
     {
-        uint256 v = volatilityOracle.vol();
         uint256 sp = priceOracle.latestAnswer().div(priceOracle.decimals());
+        uint256 v = volatilityOracle.vol();
+        uint256 t = expiryTimestamp.sub(block.timestamp).div(1 days);
 
         uint256 sigma = ((v**2) / 2);
         uint256 sigmaB = 1e36;
