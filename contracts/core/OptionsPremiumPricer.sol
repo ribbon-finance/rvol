@@ -4,12 +4,14 @@ pragma solidity 0.7.3;
 import {IVolatilityOracle} from "../interfaces/IVolatilityOracle.sol";
 import {IPriceOracle} from "../interfaces/IPriceOracle.sol";
 import {ICompToken} from "../interfaces/ICompToken.sol";
+import {DSMath} from "../libraries/DSMath.sol";
 import {IBlackScholes} from "../interfaces/IBlackScholes.sol";
 import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
 import {Math} from "../libraries/Math.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
+import "hardhat/console.sol";
 
-contract OptionsPremiumPricer {
+contract OptionsPremiumPricer is DSMath {
     using SafeMath for uint256;
 
     /**
@@ -51,12 +53,25 @@ contract OptionsPremiumPricer {
         uint256 expiryTimestamp,
         bool isPut
     ) external view returns (uint256 premium) {
-        uint256 sp = priceOracle.latestAnswer().div(priceOracle.decimals());
+        require(
+            expiryTimestamp > block.timestamp,
+            "Expiry must be in the future!"
+        );
+
+        uint256 sp = priceOracle.latestAnswer().div(10**priceOracle.decimals());
         uint256 v = volatilityOracle.vol();
         uint256 t = expiryTimestamp.sub(block.timestamp).div(1 days);
 
+        console.log("strike price is %s", st);
+        console.log("underlying price is %s", sp);
+        console.log("volatility is %s", v);
+        console.log("time to expiry in days is %s", t);
+
         (uint256 call, uint256 put) = blackScholes.quoteAll(t, v, sp, st);
-        premium = isPut ? put : call;
+        console.log("call option price is %s", call);
+        console.log("put option price is %s", put);
+
+        premium = !isPut ? call : put;
     }
 
     /**
@@ -69,8 +84,21 @@ contract OptionsPremiumPricer {
         uint256 assetMantissa =
             10**IERC20Detailed(volatilityOracle.baseCurrency()).decimals();
         uint256 blocksPerDay = 6570;
-        apy = ((supplyRate.div(assetMantissa.mul(blocksPerDay).add(1)))**365)
-            .sub(1)
+        apy = wdiv(
+            sub(
+                (
+                    rpow(
+                        add(
+                            assetMantissa.mul(assetMantissa),
+                            wdiv(supplyRate, wmul(assetMantissa, blocksPerDay))
+                        ),
+                        365
+                    )
+                ),
+                assetMantissa.mul(assetMantissa)
+            ),
+            assetMantissa.mul(assetMantissa)
+        )
             .mul(100);
     }
 
@@ -87,6 +115,11 @@ contract OptionsPremiumPricer {
         view
         returns (uint256 delta)
     {
+        require(
+            expiryTimestamp > block.timestamp,
+            "Expiry must be in the future!"
+        );
+
         uint256 sp = priceOracle.latestAnswer().div(priceOracle.decimals());
         uint256 v = volatilityOracle.vol();
         uint256 t = expiryTimestamp.sub(block.timestamp).div(1 days);
@@ -108,6 +141,6 @@ contract OptionsPremiumPricer {
      * @notice Calculates the underlying assets price
      */
     function getUnderlyingPrice() external view returns (uint256 price) {
-        price = priceOracle.latestAnswer().div(priceOracle.decimals());
+        price = priceOracle.latestAnswer().div(10**priceOracle.decimals());
     }
 }

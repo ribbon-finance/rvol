@@ -8,4 +8,12 @@ interface IBlackScholes {
         uint256 sp,
         uint256 st
     ) external view returns (uint256 call, uint256 put);
+
+    function quotePrice(
+        address tokenIn,
+        address tokenOut,
+        uint256 t,
+        uint256 sp,
+        uint256 st
+    ) external view returns (uint256 call, uint256 put);
 }
