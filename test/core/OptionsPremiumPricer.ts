@@ -17,7 +17,6 @@ describe("OptionsPremiumPricer", () => {
   let signer: SignerWithAddress;
 
   const PERIOD = 43200; // 12 hours
-  const COMMIT_PHASE_DURATION = 1800; // 30 mins
   const WEEK = 604800; // 7 days
 
   const ethusdcPool = "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8";
