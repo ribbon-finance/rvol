@@ -11,7 +11,7 @@ import {Math} from "../libraries/Math.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import "hardhat/console.sol";
 
-contract OptionsPremiumPricer is DSMath {
+contract OptionsPremiumPricer is DSMath{
     using SafeMath for uint256;
 
     /**
@@ -53,12 +53,9 @@ contract OptionsPremiumPricer is DSMath {
         uint256 expiryTimestamp,
         bool isPut
     ) external view returns (uint256 premium) {
-        require(
-            expiryTimestamp > block.timestamp,
-            "Expiry must be in the future!"
-        );
+        require(expiryTimestamp > block.timestamp, "Expiry must be in the future!");
 
-        uint256 sp = priceOracle.latestAnswer().div(10**priceOracle.decimals());
+        uint256 sp = priceOracle.latestAnswer().div(10 ** priceOracle.decimals());
         uint256 v = volatilityOracle.vol();
         uint256 t = expiryTimestamp.sub(block.timestamp).div(1 days);
 
@@ -84,21 +81,7 @@ contract OptionsPremiumPricer is DSMath {
         uint256 assetMantissa =
             10**IERC20Detailed(volatilityOracle.baseCurrency()).decimals();
         uint256 blocksPerDay = 6570;
-        apy = wdiv(
-            sub(
-                (
-                    rpow(
-                        add(
-                            assetMantissa.mul(assetMantissa),
-                            wdiv(supplyRate, wmul(assetMantissa, blocksPerDay))
-                        ),
-                        365
-                    )
-                ),
-                assetMantissa.mul(assetMantissa)
-            ),
-            assetMantissa.mul(assetMantissa)
-        )
+        apy = wdiv(sub((rpow(add(assetMantissa.mul(assetMantissa), wdiv(supplyRate, wmul(assetMantissa, blocksPerDay))), 365)), assetMantissa.mul(assetMantissa)), assetMantissa.mul(assetMantissa))
             .mul(100);
     }
 
@@ -115,10 +98,7 @@ contract OptionsPremiumPricer is DSMath {
         view
         returns (uint256 delta)
     {
-        require(
-            expiryTimestamp > block.timestamp,
-            "Expiry must be in the future!"
-        );
+        require(expiryTimestamp > block.timestamp, "Expiry must be in the future!");
 
         uint256 sp = priceOracle.latestAnswer().div(priceOracle.decimals());
         uint256 v = volatilityOracle.vol();
@@ -141,6 +121,6 @@ contract OptionsPremiumPricer is DSMath {
      * @notice Calculates the underlying assets price
      */
     function getUnderlyingPrice() external view returns (uint256 price) {
-        price = priceOracle.latestAnswer().div(10**priceOracle.decimals());
+        price = priceOracle.latestAnswer().div(10 ** priceOracle.decimals());
     }
 }
