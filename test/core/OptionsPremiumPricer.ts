@@ -25,8 +25,6 @@ describe("OptionsPremiumPricer", () => {
 
   const wethPriceOracleAddress = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
   const wethCTokenAddress = "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5";
-  const blackScholesCalculatorAddress =
-    "0xCCdfCB72753CfD55C5afF5d98eA5f9C43be9659d";
 
   before(async function () {
     [signer] = await ethers.getSigners();
@@ -40,8 +38,7 @@ describe("OptionsPremiumPricer", () => {
     optionsPremiumPricer = await OptionsPremiumPricer.deploy(
       mockOracle.address,
       wethPriceOracleAddress,
-      wethCTokenAddress,
-      blackScholesCalculatorAddress
+      wethCTokenAddress
     );
     wethPriceOracle = await ethers.getContractAt(
       "IPriceOracle",
@@ -86,11 +83,14 @@ describe("OptionsPremiumPricer", () => {
     });
 
     it("gets the correct premium", async function () {
+      const underlyingStrikeDiff = 200;
       const strikePrice = BigNumber.from(
         await optionsPremiumPricer.getUnderlyingPrice()
-      ).add(200);
+      )
+        .add(underlyingStrikeDiff)
+        .mul(BigNumber.from(10).pow(8));
       const expiryTimestamp = (await time.now()).add(WEEK);
-      const isPut = false;
+      const isPut = true;
 
       const premium = await optionsPremiumPricer.getPremium(
         strikePrice,
@@ -98,14 +98,22 @@ describe("OptionsPremiumPricer", () => {
         isPut
       );
 
-      console.log(`Premium is ${premium}`);
-      assert.isAbove(parseInt(premium.toString()), 0);
+      assert.isAbove(
+        parseInt(premium.toString()),
+        parseInt(
+          BigNumber.from(underlyingStrikeDiff)
+            .mul(BigNumber.from(10).pow(8))
+            .toString()
+        )
+      );
     });
 
     it("gives more expensive put than call if strikePrice above current price", async function () {
       const strikePrice = BigNumber.from(
         await optionsPremiumPricer.getUnderlyingPrice()
-      ).add(200);
+      )
+        .add(300)
+        .mul(BigNumber.from(10).pow(8));
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const premiumCall = await optionsPremiumPricer.getPremium(
@@ -128,7 +136,9 @@ describe("OptionsPremiumPricer", () => {
     it("gives more expensive call than put if strikePrice below current price", async function () {
       const strikePrice = BigNumber.from(
         await optionsPremiumPricer.getUnderlyingPrice()
-      ).sub(200);
+      )
+        .sub(200)
+        .mul(BigNumber.from(10).pow(8));
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const premiumCall = await optionsPremiumPricer.getPremium(
@@ -151,10 +161,14 @@ describe("OptionsPremiumPricer", () => {
     it("gives smaller premium price for option with extremely OTM strike price", async function () {
       const strikePriceSmall = BigNumber.from(
         await optionsPremiumPricer.getUnderlyingPrice()
-      ).add(200);
+      )
+        .add(200)
+        .mul(BigNumber.from(10).pow(8));
       const strikePriceBig = BigNumber.from(
         await optionsPremiumPricer.getUnderlyingPrice()
-      ).add(100000);
+      )
+        .add(1000)
+        .mul(BigNumber.from(10).pow(8));
       const expiryTimestamp = (await time.now()).add(WEEK);
       const isPut = false;
 
@@ -175,10 +189,34 @@ describe("OptionsPremiumPricer", () => {
       );
     });
 
+    it("gives same premium price for puts/calls for ATM", async function () {
+      const strikePrice = BigNumber.from(
+        await optionsPremiumPricer.getUnderlyingPrice()
+      ).mul(BigNumber.from(10).pow(8));
+      const expiryTimestamp = (await time.now()).add(WEEK);
+      const isPut = false;
+
+      const premiumCall = await optionsPremiumPricer.getPremium(
+        strikePrice,
+        expiryTimestamp,
+        isPut
+      );
+
+      const premiumPut = await optionsPremiumPricer.getPremium(
+        strikePrice,
+        expiryTimestamp,
+        !isPut
+      );
+
+      assert.equal(premiumCall.toString(), premiumPut.toString());
+    });
+
     it("gives more expensive price for expiry twice as far out from now", async function () {
       const strikePrice = BigNumber.from(
         await optionsPremiumPricer.getUnderlyingPrice()
-      ).add(200);
+      )
+        .add(200)
+        .mul(BigNumber.from(10).pow(8));
       const expiryTimestampSmall = (await time.now()).add(WEEK);
       const expiryTimestampBig = (await time.now()).add(10 * WEEK);
       const isPut = false;
@@ -194,8 +232,6 @@ describe("OptionsPremiumPricer", () => {
         isPut
       );
 
-      console.log(premiumBigTimestamp.toString());
-      console.log(premiumSmallTimestamp.toString());
       assert.isAbove(
         parseInt(premiumBigTimestamp.toString()),
         parseInt(premiumSmallTimestamp.toString())
@@ -219,10 +255,12 @@ describe("OptionsPremiumPricer", () => {
       ).to.be.revertedWith("Expiry must be in the future!");
     });
 
-    it("gets the correct option delta", async function () {
+    it("gets the correct option delta for strike > underlying", async function () {
       const strikePrice = BigNumber.from(
         await optionsPremiumPricer.getUnderlyingPrice()
-      ).add(1000);
+      )
+        .add(300)
+        .mul(BigNumber.from(10).pow(8));
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const delta = await optionsPremiumPricer.getOptionDelta(
@@ -231,7 +269,39 @@ describe("OptionsPremiumPricer", () => {
       );
 
       console.log(delta.toString());
-      assert.isAbove(parseInt(delta), 0);
+      assert.isBelow(parseInt(delta.toString()), 50);
+    });
+
+    it("gets the correct option delta for strike < underlying", async function () {
+      const strikePrice = BigNumber.from(
+        await optionsPremiumPricer.getUnderlyingPrice()
+      )
+        .sub(300)
+        .mul(BigNumber.from(10).pow(8));
+      const expiryTimestamp = (await time.now()).add(WEEK);
+
+      const delta = await optionsPremiumPricer.getOptionDelta(
+        strikePrice,
+        expiryTimestamp
+      );
+
+      console.log(delta.toString());
+      assert.isAbove(parseInt(delta.toString()), 50);
+    });
+
+    it("gets the correct option delta for strike = underlying", async function () {
+      const strikePrice = BigNumber.from(
+        await optionsPremiumPricer.getUnderlyingPrice()
+      ).mul(BigNumber.from(10).pow(8));
+      const expiryTimestamp = (await time.now()).add(WEEK);
+
+      const delta = await optionsPremiumPricer.getOptionDelta(
+        strikePrice,
+        expiryTimestamp
+      );
+
+      console.log(delta.toString());
+      assert.equal(parseInt(delta.toString()), 50);
     });
   });
 
