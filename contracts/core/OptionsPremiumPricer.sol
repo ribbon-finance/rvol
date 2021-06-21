@@ -62,7 +62,7 @@ contract OptionsPremiumPricer is DSMath {
 
         (uint256 call, uint256 put) = quoteAll(t, v, sp, st);
 
-        premium = !isPut ? call : put;
+        premium = isPut ? put : call;
     }
 
     /**
