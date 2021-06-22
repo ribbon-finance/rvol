@@ -3,11 +3,12 @@ pragma solidity 0.7.3;
 
 import {IVolatilityOracle} from "../interfaces/IVolatilityOracle.sol";
 import {IPriceOracle} from "../interfaces/IPriceOracle.sol";
-import {ICompToken} from "../interfaces/ICompToken.sol";
 import {DSMath} from "../libraries/DSMath.sol";
 import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
 import {Math} from "../libraries/Math.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
+
+import "hardhat/console.sol";
 
 contract OptionsPremiumPricer is DSMath {
     using SafeMath for uint256;
@@ -17,21 +18,22 @@ contract OptionsPremiumPricer is DSMath {
      */
     IVolatilityOracle public immutable volatilityOracle;
     IPriceOracle public immutable priceOracle;
-    ICompToken public immutable cToken;
+    IPriceOracle public immutable stablesOracle;
 
     // For reference - IKEEP3rVolatility: 0xCCdfCB72753CfD55C5afF5d98eA5f9C43be9659d
 
     constructor(
         address _volatilityOracle,
         address _priceOracle,
-        address _cToken
+        address _stablesOracle
     ) {
         require(_volatilityOracle != address(0), "!_volatilityOracle");
         require(_priceOracle != address(0), "!_priceOracle");
-        require(_cToken != address(0), "!_cToken");
+        require(_stablesOracle != address(0), "!_stablesOracle");
+
         volatilityOracle = IVolatilityOracle(_volatilityOracle);
         priceOracle = IPriceOracle(_priceOracle);
-        cToken = ICompToken(_cToken);
+        stablesOracle = IPriceOracle(_stablesOracle);
     }
 
     /**
@@ -45,7 +47,9 @@ contract OptionsPremiumPricer is DSMath {
      * @param st is the strike price of the option
      * @param expiryTimestamp is the unix timestamp of expiry
      * @param isPut is whether the option is a put option
-     * @return premium for 100 contracts with 8 decimals i.e. 500*10**8 = $500 for 100 contracts
+     * @return premium for 100 contracts with 18 decimals i.e.
+     * 500*10**18 = 500 USDC for 100 contracts for puts,
+     * 5*10**18 = 5 of underlying asset (ETH, WBTC, etc.) for 100 contracts for calls,
      */
     function getPremium(
         uint256 st,
@@ -62,7 +66,25 @@ contract OptionsPremiumPricer is DSMath {
 
         (uint256 call, uint256 put) = quoteAll(t, v, sp, st);
 
-        premium = isPut ? put : call;
+        // Multiplier to convert oracle latestAnswer to 18 decimals
+        uint256 assetOracleMultiplier =
+            10 **
+                (
+                    uint256(18).sub(
+                        isPut
+                            ? stablesOracle.decimals()
+                            : priceOracle.decimals()
+                    )
+                );
+
+        // Make option premium denominated in the underlying
+        // asset for call vaults and USDC for put vaults
+        premium = isPut
+            ? wdiv(put, stablesOracle.latestAnswer().mul(assetOracleMultiplier))
+            : wdiv(call, priceOracle.latestAnswer().mul(assetOracleMultiplier));
+
+        // Convert to 18 decimals
+        premium = premium.mul(assetOracleMultiplier);
     }
 
     /**
@@ -209,12 +231,13 @@ contract OptionsPremiumPricer is DSMath {
         )
     {
         // chainlink oracle returns crypto / usd pairs with 8 decimals, like otoken strike price
-        sp = priceOracle.latestAnswer().div(10**priceOracle.decimals()).mul(
-            10**8
+        sp = priceOracle.latestAnswer().mul(10**8).div(
+            10**priceOracle.decimals()
         );
-        // annualized vol * 10 ** 7 because delta expects 16 decimals
-        // and annualizedVol is 8 decimals + it shifts percentage by one decimal place
-        v = volatilityOracle.annualizedVol().mul(10**7);
+        // annualized vol * 10 ** 8 because delta expects 18 decimals
+        // and annualizedVol is 8 decimals
+        v = volatilityOracle.annualizedVol().mul(10**10);
+        console.log("vol is %s", v);
         t = expiryTimestamp.sub(block.timestamp).div(1 days);
     }
 
@@ -222,6 +245,6 @@ contract OptionsPremiumPricer is DSMath {
      * @notice Calculates the underlying assets price
      */
     function getUnderlyingPrice() external view returns (uint256 price) {
-        price = priceOracle.latestAnswer().div(10**priceOracle.decimals());
+        price = priceOracle.latestAnswer();
     }
 }
