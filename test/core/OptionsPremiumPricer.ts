@@ -93,6 +93,10 @@ describe("OptionsPremiumPricer", () => {
         isPut
       );
 
+      console.log(
+        `premium is ${math.wmul(premium, underlyingPriceShifted).toString()}`
+      );
+
       assert.isAbove(
         parseInt(math.wmul(premium, underlyingPriceShifted).toString()),
         parseInt(
@@ -120,7 +124,11 @@ describe("OptionsPremiumPricer", () => {
         true
       );
 
-      console.log(`premiumCall is ${premiumCall}`);
+      console.log(
+        `premiumCall is ${math
+          .wmul(premiumCall, underlyingPriceShifted)
+          .toString()}`
+      );
       console.log(`premiumPut is ${premiumPut}`);
 
       assert.isAbove(
@@ -146,7 +154,11 @@ describe("OptionsPremiumPricer", () => {
         true
       );
 
-      console.log(`premiumCall is ${premiumCall}`);
+      console.log(
+        `premiumCall is ${math
+          .wmul(premiumCall, underlyingPriceShifted)
+          .toString()}`
+      );
       console.log(`premiumPut is ${premiumPut}`);
 
       assert.isAbove(
@@ -176,8 +188,16 @@ describe("OptionsPremiumPricer", () => {
         isPut
       );
 
-      console.log(`premiumSmall is ${premiumSmall}`);
-      console.log(`premiumBig is ${premiumBig}`);
+      console.log(
+        `premiumSmall is ${math
+          .wmul(premiumSmall, underlyingPriceShifted)
+          .toString()}`
+      );
+      console.log(
+        `premiumBig is ${math
+          .wmul(premiumBig, underlyingPriceShifted)
+          .toString()}`
+      );
 
       assert.isAbove(
         parseInt(math.wmul(premiumSmall, underlyingPriceShifted).toString()),
