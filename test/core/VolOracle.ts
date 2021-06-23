@@ -32,7 +32,10 @@ describe("VolOracle", () => {
 
   describe("twap", () => {
     it("gets the TWAP for a period", async function () {
-      assert.equal((await oracle.twap(ethusdcPool)).toString(), "2427732358");
+      assert.equal(
+        (await oracle.twap(ethusdcPool)).toString(),
+        "411907019541423"
+      );
     });
   });
 
@@ -55,7 +58,7 @@ describe("VolOracle", () => {
       assert.equal(mean1.toNumber(), 0);
       assert.equal(m2_1.toNumber(), 0);
 
-      let stdev = await oracle.vol();
+      let stdev = await oracle.vol(ethusdcPool);
       assert.equal(stdev.toNumber(), 0);
     });
 
@@ -109,14 +112,14 @@ describe("VolOracle", () => {
       // First time is more expensive
       const tx1 = await oracle.commit(ethusdcPool);
       const receipt1 = await tx1.wait();
-      assert.isAtMost(receipt1.gasUsed.toNumber(), 84000);
+      assert.isAtMost(receipt1.gasUsed.toNumber(), 99000);
 
       await time.increaseTo(topOfPeriod + PERIOD);
 
       // Second time is cheaper
       const tx2 = await oracle.commit(ethusdcPool);
       const receipt2 = await tx2.wait();
-      assert.isAtMost(receipt2.gasUsed.toNumber(), 48000);
+      assert.isAtMost(receipt2.gasUsed.toNumber(), 62000);
     });
 
     it("updates the vol", async function () {
@@ -137,7 +140,7 @@ describe("VolOracle", () => {
         await mockOracle.setPrice(values[i]);
         const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
         await time.increaseTo(topOfPeriod);
-        await mockOracle.mockCommit();
+        await mockOracle.mockCommit(ethusdcPool);
         let stdev = await mockOracle.vol(ethusdcPool);
         assert.equal(stdev.toString(), stdevs[i].toString());
       }
@@ -166,7 +169,7 @@ describe("VolOracle", () => {
         await mockOracle.setPrice(values[i]);
         const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
         await time.increaseTo(topOfPeriod);
-        await mockOracle.mockCommit();
+        await mockOracle.mockCommit(ethusdcPool);
       }
       assert.equal((await mockOracle.vol(ethusdcPool)).toString(), "6121243"); // 6.12%
       assert.equal(
