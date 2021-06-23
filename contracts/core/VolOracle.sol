@@ -16,9 +16,6 @@ contract VolOracle is DSMath {
     /**
      * Immutables
      */
-    address public immutable pool;
-    address public immutable baseCurrency;
-    address public immutable quoteCurrency;
     uint32 public immutable period;
     uint256 public immutable annualizationConstant;
     uint8 private immutable baseCurrencyDecimals;
@@ -40,10 +37,10 @@ contract VolOracle is DSMath {
     }
 
     /// @dev Stores the latest data that helps us compute the standard deviation of the seen dataset.
-    Accumulator public accumulator;
+    mapping(address => Accumulator) public accumulators;
 
-    /// @dev Stores the last oracle TWAP price
-    uint256 public lastPrice;
+    /// @dev Stores the last oracle TWAP price for a pool
+    mapping(address => uint256) public lastPrices;
 
     /***
      * Events
@@ -65,12 +62,7 @@ contract VolOracle is DSMath {
      * @param _quoteCurrency is the currency to quote the volatility in
      * @param _period is how often the oracle needs to be updated
      */
-    constructor(
-        address _pool,
-        address _baseCurrency,
-        address _quoteCurrency,
-        uint32 _period
-    ) {
+    constructor(uint32 _period) {
         IUniswapV3Pool uniPool = IUniswapV3Pool(_pool);
         address token0 = uniPool.token0();
         address token1 = uniPool.token1();
@@ -174,12 +166,15 @@ contract VolOracle is DSMath {
      * @notice Returns the TWAP for the entire Uniswap observation period
      * @return price is the TWAP quoted in quote currency
      */
-    function twap() public view returns (uint256 price) {
+    function twap(address pool) public view returns (uint256 price) {
         (
             int56 oldestTickCumulative,
             int56 newestTickCumulative,
             uint32 duration
-        ) = getTickCumulatives();
+        ) = getTickCumulatives(pool);
+
+        address token0 = uniPool.token0();
+        address token1 = uniPool.token1();
 
         int24 timeWeightedAverageTick =
             getTimeWeightedAverageTick(
@@ -187,6 +182,8 @@ contract VolOracle is DSMath {
                 newestTickCumulative,
                 duration
             );
+
+        IUniswapV3Pool uniPool = IUniswapV3Pool(pool);
 
         // Get the price of a unit of asset
         // For ETH, it would be 1 ether (10**18)
@@ -196,8 +193,8 @@ contract VolOracle is DSMath {
             OracleLibrary.getQuoteAtTick(
                 timeWeightedAverageTick,
                 quoteAmount,
-                baseCurrency,
-                quoteCurrency
+                token0,
+                token1
             );
     }
 
@@ -226,7 +223,7 @@ contract VolOracle is DSMath {
      * @return newestTickCumulative is the tick cumulative at the first index of the observations array
      * @return duration is the TWAP duration determined by the difference between newest-oldest
      */
-    function getTickCumulatives()
+    function getTickCumulatives(address pool)
         private
         view
         returns (
