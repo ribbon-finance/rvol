@@ -152,7 +152,7 @@ contract VolOracle is DSMath {
     }
 
     /**
-     * @notice Returns the standard deviation of the base currency in 10**8 i.e. 5*10**8 = 500%
+     * @notice Returns the standard deviation of the base currency in 10**8 i.e. 1*10**8 = 100%
      * @return standardDeviation is the standard deviation of the asset
      */
     function vol() public view returns (uint256 standardDeviation) {
@@ -160,7 +160,7 @@ contract VolOracle is DSMath {
     }
 
     /**
-     * @notice Returns the annualized standard deviation of the base currency in 10**8 i.e. 5*10**8 = 500%
+     * @notice Returns the annualized standard deviation of the base currency in 10**8 i.e. 1*10**8 = 100%
      * @return annualStdev is the annualized standard deviation of the asset
      */
     function annualizedVol() public view returns (uint256 annualStdev) {
