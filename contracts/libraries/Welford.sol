@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.7.3;
 
-import {Math} from "./Math.sol";
 import {SignedSafeMath} from "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import {Math} from "./Math.sol";
 
 // REFERENCE
 // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
@@ -35,6 +35,10 @@ library Welford {
         int256 _mean = int256(curMean).add(delta.div(_count));
         int256 delta2 = newValue.sub(_mean);
         int256 _m2 = int256(curM2).add(delta.mul(delta2));
+
+        require(_count > 0, "count<=0");
+        require(_mean >= 0, "mean<0");
+        require(_m2 >= 0, "m2<0");
 
         count = uint256(_count);
         mean = uint256(_mean);
