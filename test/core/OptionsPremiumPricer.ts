@@ -235,8 +235,8 @@ describe("OptionsPremiumPricer", () => {
       );
 
       assert.isBelow(
-        parseInt(math.wmul(premiumCall, underlyingPriceShifted).toString()),
-        parseInt(premiumPut.toString())
+        parseInt(premiumPut.toString()),
+        parseInt(math.wmul(premiumCall, underlyingPriceShifted).toString())
       );
     });
 
@@ -371,19 +371,19 @@ describe("OptionsPremiumPricer", () => {
 
   const updateVol = async () => {
     const values = [
+      BigNumber.from("2000000000"),
       BigNumber.from("2100000000"),
-      BigNumber.from("2100000000"),
-      BigNumber.from("2100000000"),
-      BigNumber.from("2100000000"),
-      BigNumber.from("2100000000"),
-      BigNumber.from("2100000000"),
-      BigNumber.from("2100000000"),
-      BigNumber.from("2100000000"),
-      BigNumber.from("2100000000"),
-      BigNumber.from("2100000000"),
-      BigNumber.from("2100000000"),
-      BigNumber.from("2100000000"),
-      BigNumber.from("2100000000"),
+      BigNumber.from("2200000000"),
+      BigNumber.from("2150000000"),
+      BigNumber.from("2250000000"),
+      BigNumber.from("2350000000"),
+      BigNumber.from("2450000000"),
+      BigNumber.from("2550000000"),
+      BigNumber.from("2350000000"),
+      BigNumber.from("2450000000"),
+      BigNumber.from("2250000000"),
+      BigNumber.from("2250000000"),
+      BigNumber.from("2650000000"),
     ];
 
     for (let i = 0; i < values.length; i++) {
