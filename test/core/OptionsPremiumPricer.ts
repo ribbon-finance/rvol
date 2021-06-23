@@ -38,8 +38,9 @@ describe("OptionsPremiumPricer", () => {
       signer
     );
 
-    mockOracle = await TestVolOracle.deploy(ethusdcPool, weth, usdc, PERIOD);
+    mockOracle = await TestVolOracle.deploy(PERIOD);
     optionsPremiumPricer = await OptionsPremiumPricer.deploy(
+      ethusdcPool,
       mockOracle.address,
       wethPriceOracleAddress,
       usdcPriceOracleAddress
@@ -446,7 +447,7 @@ describe("OptionsPremiumPricer", () => {
       await mockOracle.setPrice(values[i]);
       const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
       await time.increaseTo(topOfPeriod);
-      await mockOracle.mockCommit();
+      await mockOracle.mockCommit(ethusdcPool);
     }
   };
 });

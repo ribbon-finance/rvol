@@ -14,6 +14,7 @@ contract OptionsPremiumPricer is DSMath {
     /**
      * Immutables
      */
+    address public immutable pool;
     IVolatilityOracle public immutable volatilityOracle;
     IPriceOracle public immutable priceOracle;
     IPriceOracle public immutable stablesOracle;
@@ -21,14 +22,17 @@ contract OptionsPremiumPricer is DSMath {
     // For reference - IKEEP3rVolatility: 0xCCdfCB72753CfD55C5afF5d98eA5f9C43be9659d
 
     constructor(
+        address _pool,
         address _volatilityOracle,
         address _priceOracle,
         address _stablesOracle
     ) {
+        require(_pool != address(0), "!_pool");
         require(_volatilityOracle != address(0), "!_volatilityOracle");
         require(_priceOracle != address(0), "!_priceOracle");
         require(_stablesOracle != address(0), "!_stablesOracle");
 
+        pool = _pool;
         volatilityOracle = IVolatilityOracle(_volatilityOracle);
         priceOracle = IPriceOracle(_priceOracle);
         stablesOracle = IPriceOracle(_stablesOracle);
@@ -227,7 +231,7 @@ contract OptionsPremiumPricer is DSMath {
         );
         // annualized vol * 10 ** 8 because delta expects 18 decimals
         // and annualizedVol is 8 decimals
-        v = volatilityOracle.annualizedVol().mul(10**10);
+        v = volatilityOracle.annualizedVol(pool).mul(10**10);
         t = expiryTimestamp.sub(block.timestamp).div(1 days);
     }
 
