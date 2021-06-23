@@ -128,9 +128,9 @@ describe("VolOracle", () => {
       ];
       const stdevs = [
         BigNumber.from("0"),
-        BigNumber.from("52500000"),
-        BigNumber.from("49441450"),
-        BigNumber.from("44478303"),
+        BigNumber.from("2439508"),
+        BigNumber.from("2248393"),
+        BigNumber.from("3068199"),
       ];
 
       for (let i = 0; i < values.length; i++) {
@@ -139,7 +139,7 @@ describe("VolOracle", () => {
         await time.increaseTo(topOfPeriod);
         await mockOracle.mockCommit();
         let stdev = await mockOracle.vol();
-        // assert.equal(stdev.toString(), stdevs[i].toString());
+        assert.equal(stdev.toString(), stdevs[i].toString());
       }
     });
   });
