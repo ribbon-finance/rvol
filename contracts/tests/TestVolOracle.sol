@@ -12,19 +12,14 @@ contract TestVolOracle is DSMath, VolOracle {
     using SafeMath for uint256;
     uint256 private _price;
 
-    constructor(
-        address _pool,
-        address _baseCurrency,
-        address _quoteCurrency,
-        uint32 _period
-    ) VolOracle(_pool, _baseCurrency, _quoteCurrency, _period) {}
+    constructor(uint32 _period) VolOracle(_period) {}
 
-    function mockCommit() external {
+    function mockCommit(address pool) external {
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
         require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
 
         uint256 price = mockTwap();
-        uint256 _lastPrice = lastPrice;
+        uint256 _lastPrice = lastPrices[pool];
         uint256 periodReturn = _lastPrice > 0 ? wdiv(price, _lastPrice) : 0;
 
         // logReturn is in 10**18
@@ -34,7 +29,7 @@ contract TestVolOracle is DSMath, VolOracle {
                 ? PRBMathSD59x18.ln(int256(periodReturn)) / 10**10
                 : 0;
 
-        Accumulator storage accum = accumulator;
+        Accumulator storage accum = accumulators[pool];
 
         require(
             block.timestamp >=
@@ -53,7 +48,7 @@ contract TestVolOracle is DSMath, VolOracle {
         accum.mean = uint96(newMean);
         accum.m2 = uint112(newM2);
         accum.lastTimestamp = commitTimestamp;
-        lastPrice = price;
+        lastPrices[pool] = price;
 
         emit Commit(
             uint16(newCount),
