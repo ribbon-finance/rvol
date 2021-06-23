@@ -360,8 +360,8 @@ describe("OptionsPremiumPricer", () => {
 
       console.log(`delta is ${delta.toString()}`);
 
-      assert.equal(delta.toString(), "34");
-      assert.isBelow(parseInt(delta.toString()), 50);
+      assert.equal(delta.toString(), "3457");
+      assert.isBelow(parseInt(delta.toString()), 5000);
     });
 
     it("gets the correct option delta for strike < underlying", async function () {
@@ -377,8 +377,8 @@ describe("OptionsPremiumPricer", () => {
 
       console.log(`delta is ${delta.toString()}`);
 
-      assert.equal(delta.toString(), "75");
-      assert.isAbove(parseInt(delta.toString()), 50);
+      assert.equal(delta.toString(), "7559");
+      assert.isAbove(parseInt(delta.toString()), 5000);
     });
 
     it("gets the correct option delta for strike = underlying", async function () {
@@ -402,9 +402,9 @@ describe("OptionsPremiumPricer", () => {
       console.log(`deltaSmall is ${delta.toString()}`);
       console.log(`deltaLarger is ${deltaLarger.toString()}`);
 
-      assert.equal(delta.toString(), "54");
+      assert.equal(delta.toString(), "5455");
 
-      assert.isAbove(parseInt(delta.toString()), 50);
+      assert.isAbove(parseInt(delta.toString()), 5000);
       assert.isBelow(
         parseInt(delta.toString()),
         parseInt(deltaLarger.toString())
