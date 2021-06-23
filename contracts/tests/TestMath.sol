@@ -21,14 +21,4 @@ contract TestMath {
         num.sqrt();
         return startgas - gasleft();
     }
-
-    function testLn(uint256 num)
-        external
-        view
-        returns (uint256 result, uint256 gas)
-    {
-        uint256 startgas = gasleft();
-        result = num.ln();
-        gas = startgas - gasleft();
-    }
 }
