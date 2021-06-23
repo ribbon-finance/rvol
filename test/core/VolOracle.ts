@@ -116,7 +116,7 @@ describe("VolOracle", () => {
       // Second time is cheaper
       const tx2 = await oracle.commit();
       const receipt2 = await tx2.wait();
-      assert.isAtMost(receipt2.gasUsed.toNumber(), 47000);
+      assert.isAtMost(receipt2.gasUsed.toNumber(), 48000);
     });
 
     it("updates the vol", async function () {
@@ -128,9 +128,9 @@ describe("VolOracle", () => {
       ];
       const stdevs = [
         BigNumber.from("0"),
-        BigNumber.from("52500000"),
-        BigNumber.from("49441450"),
-        BigNumber.from("44478303"),
+        BigNumber.from("2439508"),
+        BigNumber.from("2248393"),
+        BigNumber.from("3068199"),
       ];
 
       for (let i = 0; i < values.length; i++) {
@@ -168,9 +168,8 @@ describe("VolOracle", () => {
         await time.increaseTo(topOfPeriod);
         await mockOracle.mockCommit();
       }
-
-      assert.equal((await mockOracle.vol()).toString(), "28044645"); // 0.28%
-      assert.equal((await mockOracle.annualizedVol()).toString(), "757205415"); // 7.5% annually
+      assert.equal((await mockOracle.vol()).toString(), "6121243"); // 6.12%
+      assert.equal((await mockOracle.annualizedVol()).toString(), "165273561"); // 165% annually
     });
   });
 

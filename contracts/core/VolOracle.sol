@@ -6,8 +6,9 @@ import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import {DSMath} from "../libraries/DSMath.sol";
 import {OracleLibrary} from "../libraries/OracleLibrary.sol";
 import {Welford} from "../libraries/Welford.sol";
-import {Math} from "../libraries/Math.sol";
 import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
+import {Math} from "../libraries/Math.sol";
+import {PRBMathSD59x18} from "../libraries/PRBMathSD59x18.sol";
 
 contract VolOracle is DSMath {
     using SafeMath for uint256;
@@ -110,9 +111,14 @@ contract VolOracle is DSMath {
 
         uint256 price = twap();
         uint256 _lastPrice = lastPrice;
-        // Result of the division is 10**18, but we scale down to 10**10 so it fits into uint112
-        uint256 periodReturn =
-            _lastPrice > 0 ? wdiv(price, _lastPrice).div(10**10) : 0;
+        uint256 periodReturn = _lastPrice > 0 ? wdiv(price, _lastPrice) : 0;
+
+        // logReturn is in 10**18
+        // we need to scale it down to 10**8
+        int256 logReturn =
+            periodReturn > 0
+                ? PRBMathSD59x18.ln(int256(periodReturn)) / 10**10
+                : 0;
 
         Accumulator storage accum = accumulator;
 
@@ -123,7 +129,11 @@ contract VolOracle is DSMath {
         );
 
         (uint256 newCount, uint256 newMean, uint256 newM2) =
-            Welford.update(accum.count, accum.mean, accum.m2, periodReturn);
+            Welford.update(accum.count, accum.mean, accum.m2, logReturn);
+
+        require(newCount < type(uint16).max, ">U16");
+        require(newMean < type(uint96).max, ">U96");
+        require(newM2 < type(uint112).max, ">U112");
 
         accum.count = uint16(newCount);
         accum.mean = uint96(newMean);
@@ -142,7 +152,7 @@ contract VolOracle is DSMath {
     }
 
     /**
-     * @notice Returns the standard deviation of the base currency in 10**8 i.e. 5*10**8 = 500%
+     * @notice Returns the standard deviation of the base currency in 10**8 i.e. 1*10**8 = 100%
      * @return standardDeviation is the standard deviation of the asset
      */
     function vol() public view returns (uint256 standardDeviation) {
@@ -150,7 +160,7 @@ contract VolOracle is DSMath {
     }
 
     /**
-     * @notice Returns the annualized standard deviation of the base currency in 10**8 i.e. 5*10**8 = 500%
+     * @notice Returns the annualized standard deviation of the base currency in 10**8 i.e. 1*10**8 = 100%
      * @return annualStdev is the annualized standard deviation of the asset
      */
     function annualizedVol() public view returns (uint256 annualStdev) {
