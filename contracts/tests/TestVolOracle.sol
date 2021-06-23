@@ -5,6 +5,8 @@ import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import {Welford} from "../libraries/Welford.sol";
 import {DSMath} from "../libraries/DSMath.sol";
 import {VolOracle} from "../core/VolOracle.sol";
+import {Math} from "../libraries/Math.sol";
+import "hardhat/console.sol";
 
 contract TestVolOracle is DSMath, VolOracle {
     using SafeMath for uint256;
@@ -24,8 +26,11 @@ contract TestVolOracle is DSMath, VolOracle {
         uint256 price = mockTwap();
         uint256 _lastPrice = lastPrice;
         // Result of the division is 10**18, but we scale down to 10**10 so it fits into uint112
-        uint256 periodReturn =
-            _lastPrice > 0 ? wdiv(price, _lastPrice).div(10**10) : 0;
+        uint256 periodReturn = _lastPrice > 0 ? wdiv(price, _lastPrice) : 0;
+
+        int256 logReturn =
+            periodReturn > 0 ? Math.prbln(int256(periodReturn)) : 0;
+
         Accumulator storage accum = accumulator;
 
         require(
@@ -35,7 +40,7 @@ contract TestVolOracle is DSMath, VolOracle {
         );
 
         (uint256 newCount, uint256 newMean, uint256 newM2) =
-            Welford.update(accum.count, accum.mean, accum.m2, periodReturn);
+            Welford.update(accum.count, accum.mean, accum.m2, logReturn);
 
         accum.count = uint16(newCount);
         accum.mean = uint96(newMean);

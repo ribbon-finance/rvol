@@ -20,7 +20,7 @@ library Welford {
         uint256 curCount,
         uint256 curMean,
         uint256 curM2,
-        uint256 newValue
+        int256 newValue
     )
         internal
         pure
@@ -31,9 +31,9 @@ library Welford {
         )
     {
         int256 _count = int256(curCount + 1);
-        int256 delta = int256(newValue).sub(int256(curMean));
+        int256 delta = newValue.sub(int256(curMean));
         int256 _mean = int256(curMean).add(delta.div(_count));
-        int256 delta2 = int256(newValue).sub(_mean);
+        int256 delta2 = newValue.sub(_mean);
         int256 _m2 = int256(curM2).add(delta.mul(delta2));
 
         count = uint256(_count);

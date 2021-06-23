@@ -10,7 +10,7 @@ contract TestWelford {
 
     function update(uint256 newValue) external {
         (uint256 newCount, uint256 newMean, uint256 newM2) =
-            Welford.update(count, mean, m2, newValue);
+            Welford.update(count, mean, m2, int256(newValue));
 
         count = newCount;
         mean = newMean;

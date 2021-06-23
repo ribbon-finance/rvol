@@ -8,6 +8,7 @@ import {OracleLibrary} from "../libraries/OracleLibrary.sol";
 import {Welford} from "../libraries/Welford.sol";
 import {Math} from "../libraries/Math.sol";
 import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
+import "hardhat/console.sol";
 
 contract VolOracle is DSMath {
     using SafeMath for uint256;
@@ -123,7 +124,12 @@ contract VolOracle is DSMath {
         );
 
         (uint256 newCount, uint256 newMean, uint256 newM2) =
-            Welford.update(accum.count, accum.mean, accum.m2, periodReturn);
+            Welford.update(
+                accum.count,
+                accum.mean,
+                accum.m2,
+                int256(periodReturn)
+            );
 
         accum.count = uint16(newCount);
         accum.mean = uint96(newMean);
