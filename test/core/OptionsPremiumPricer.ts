@@ -24,8 +24,8 @@ describe("OptionsPremiumPricer", () => {
   const WAD = BigNumber.from(10).pow(18);
 
   const ethusdcPool = "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8";
-  const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-  const usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+  // const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+  // const usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
   const wethPriceOracleAddress = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
   const usdcPriceOracleAddress = "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6";
