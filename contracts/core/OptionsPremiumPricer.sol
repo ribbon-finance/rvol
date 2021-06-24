@@ -18,6 +18,8 @@ contract OptionsPremiumPricer is DSMath {
     IVolatilityOracle public immutable volatilityOracle;
     IPriceOracle public immutable priceOracle;
     IPriceOracle public immutable stablesOracle;
+    uint256 private immutable priceOracleDecimals;
+    uint256 private immutable stablesOracleDecimals;
 
     // For reference - IKEEP3rVolatility: 0xCCdfCB72753CfD55C5afF5d98eA5f9C43be9659d
 
@@ -43,6 +45,8 @@ contract OptionsPremiumPricer is DSMath {
         volatilityOracle = IVolatilityOracle(_volatilityOracle);
         priceOracle = IPriceOracle(_priceOracle);
         stablesOracle = IPriceOracle(_stablesOracle);
+        priceOracleDecimals = IPriceOracle(_priceOracle).decimals();
+        stablesOracleDecimals = IPriceOracle(_stablesOracle).decimals();
     }
 
     /**
@@ -71,10 +75,9 @@ contract OptionsPremiumPricer is DSMath {
         );
 
         uint256 spotPrice = priceOracle.latestAnswer();
-        uint256 assetDecimals = priceOracle.decimals();
 
         (uint256 sp, uint256 v, uint256 t) =
-            blackScholesParams(spotPrice, assetDecimals, expiryTimestamp);
+            blackScholesParams(spotPrice, expiryTimestamp);
 
         (uint256 call, uint256 put) = quoteAll(t, v, sp, st);
 
@@ -83,7 +86,7 @@ contract OptionsPremiumPricer is DSMath {
             10 **
                 (
                     uint256(18).sub(
-                        isPut ? stablesOracle.decimals() : assetDecimals
+                        isPut ? stablesOracleDecimals : priceOracleDecimals
                     )
                 );
         // Make option premium denominated in the underlying
@@ -117,9 +120,8 @@ contract OptionsPremiumPricer is DSMath {
         );
 
         uint256 spotPrice = priceOracle.latestAnswer();
-        uint256 assetDecimals = priceOracle.decimals();
         (uint256 sp, uint256 v, uint256 t) =
-            blackScholesParams(spotPrice, assetDecimals, expiryTimestamp);
+            blackScholesParams(spotPrice, expiryTimestamp);
 
         uint256 d1;
         uint256 d2;
@@ -226,11 +228,7 @@ contract OptionsPremiumPricer is DSMath {
      * @return v is the volatility
      * @return t is the days until expiry
      */
-    function blackScholesParams(
-        uint256 spotPrice,
-        uint256 assetDecimals,
-        uint256 expiryTimestamp
-    )
+    function blackScholesParams(uint256 spotPrice, uint256 expiryTimestamp)
         private
         view
         returns (
@@ -240,7 +238,7 @@ contract OptionsPremiumPricer is DSMath {
         )
     {
         // chainlink oracle returns crypto / usd pairs with 8 decimals, like otoken strike price
-        sp = spotPrice.mul(10**8).div(10**assetDecimals);
+        sp = spotPrice.mul(10**8).div(10**priceOracleDecimals);
         // annualized vol * 10 ** 8 because delta expects 18 decimals
         // and annualizedVol is 8 decimals
         v = volatilityOracle.annualizedVol(pool).mul(10**10);
