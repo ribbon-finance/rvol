@@ -128,11 +128,11 @@ contract OptionsPremiumPricer is DSMath {
 
         // Divide delta by 10 ** 10 to bring it to 4 decimals for strike selection
         if (sp >= st) {
-            (d1, d2) = d(t, v, sp, st);
+            (d1, d2) = derivatives(t, v, sp, st);
             delta = Math.ncdf((Math.FIXED_1 * d1) / 1e18).div(10**10);
         } else {
             // If underlying < strike price notice we switch st <-> sp passed into d
-            (d1, d2) = d(t, v, st, sp);
+            (d1, d2) = derivatives(t, v, st, sp);
             delta = uint256(10)
                 .mul(10**13)
                 .sub(Math.ncdf((Math.FIXED_1 * d2) / 1e18))
@@ -159,10 +159,10 @@ contract OptionsPremiumPricer is DSMath {
         uint256 _p;
 
         if (sp > st) {
-            _c = C(t, v, sp, st);
+            _c = blackScholes(t, v, sp, st);
             _p = max(_c.add(st), sp) == sp ? 0 : _c.add(st).sub(sp);
         } else {
-            _p = C(t, v, st, sp);
+            _p = blackScholes(t, v, st, sp);
             _c = max(_p.add(sp), st) == st ? 0 : _p.add(sp).sub(st);
         }
 
@@ -179,13 +179,13 @@ contract OptionsPremiumPricer is DSMath {
      * @param st is the strike price
      * @return premium is the premium of option
      */
-    function C(
+    function blackScholes(
         uint256 t,
         uint256 v,
         uint256 sp,
         uint256 st
     ) private pure returns (uint256 premium) {
-        (uint256 d1, uint256 d2) = d(t, v, sp, st);
+        (uint256 d1, uint256 d2) = derivatives(t, v, sp, st);
 
         uint256 cdfD1 = Math.ncdf((Math.FIXED_1 * d1) / 1e18);
         uint256 cdfD2 = Math.cdf((int256(Math.FIXED_1) * int256(d2)) / 1e18);
@@ -202,7 +202,7 @@ contract OptionsPremiumPricer is DSMath {
      * @param st is the strike price
      * @return d1 and d2
      */
-    function d(
+    function derivatives(
         uint256 t,
         uint256 v,
         uint256 sp,
