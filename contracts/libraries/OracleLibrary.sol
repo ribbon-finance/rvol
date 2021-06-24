@@ -9,6 +9,7 @@ import "@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol";
 
 /// @title Oracle library
 /// @notice Provides functions to integrate with V3 pool oracle
+/// Copy pasted from https://github.com/Uniswap/uniswap-v3-periphery/blob/main/contracts/libraries/OracleLibrary.sol
 library OracleLibrary {
     /// @notice Fetches time-weighted average tick using Uniswap V3 oracle
     /// @param pool Address of Uniswap V3 pool that we want to observe
