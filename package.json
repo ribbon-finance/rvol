@@ -1,4 +1,35 @@
 {
+  "name": "@ribbon-finance/rvol",
+  "description": "Ethereum on-chain volatility data",
+  "license": "GPL-3.0-only",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bugs": {
+    "url": "https://github.com/ribbon-finance/rvol/issues"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "author": "Ribbon Finance",
+  "version": "1.0.0",
+  "homepage": "https://ribbon.finance/",
+  "keywords": [
+    "ribbon",
+    "v2"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ribbon-finance/rvol.git"
+  },
+  "files": [
+    "contracts/core",
+    "contracts/libraries",
+    "contracts/interfaces"
+  ],
+  "engines": {
+    "node": ">=10"
+  },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.0",
     "@nomiclabs/hardhat-waffle": "^2.0.0",
@@ -57,7 +88,6 @@
       "yarn lint:ts:prettier"
     ]
   },
-  "license": "GPL-3.0-only",
   "dependencies": {
     "@uniswap/v3-core": "^1.0.0",
     "@uniswap/v3-periphery": "^1.0.1",
