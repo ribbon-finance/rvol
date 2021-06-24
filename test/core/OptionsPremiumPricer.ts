@@ -360,8 +360,10 @@ describe("OptionsPremiumPricer", () => {
         true
       );
 
-      console.log("getPremium call:", callGas.toNumber());
-      console.log("getPremium put:", putGas.toNumber());
+      assert.isAtMost(callGas.toNumber(), 52000);
+      assert.isAtMost(putGas.toNumber(), 70000);
+      // console.log("getPremium call:", callGas.toNumber());
+      // console.log("getPremium put:", putGas.toNumber());
     });
   });
 
@@ -443,6 +445,22 @@ describe("OptionsPremiumPricer", () => {
         parseInt(delta.toString()),
         parseInt(deltaLarger.toString())
       );
+    });
+
+    it("fits the gas budget", async function () {
+      const strikePriceLarger = underlyingPrice.sub(
+        BigNumber.from(300).mul(BigNumber.from(10).pow(8))
+      );
+
+      const expiryTimestamp = (await time.now()).add(WEEK);
+
+      const { gas } = await testOptionsPremiumPricer.testGetOptionDelta(
+        strikePriceLarger,
+        expiryTimestamp
+      );
+
+      assert.isAtMost(gas.toNumber(), 49000);
+      // console.log("getOptionDelta:", gas.toNumber());
     });
   });
 
