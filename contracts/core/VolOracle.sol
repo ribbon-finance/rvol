@@ -16,12 +16,8 @@ contract VolOracle is DSMath {
     /**
      * Immutables
      */
-    address public immutable pool;
-    address public immutable baseCurrency;
-    address public immutable quoteCurrency;
     uint32 public immutable period;
     uint256 public immutable annualizationConstant;
-    uint8 private immutable baseCurrencyDecimals;
     uint256 internal constant commitPhaseDuration = 1800; // 30 minutes from every period
 
     /**
@@ -40,10 +36,10 @@ contract VolOracle is DSMath {
     }
 
     /// @dev Stores the latest data that helps us compute the standard deviation of the seen dataset.
-    Accumulator public accumulator;
+    mapping(address => Accumulator) public accumulators;
 
-    /// @dev Stores the last oracle TWAP price
-    uint256 public lastPrice;
+    /// @dev Stores the last oracle TWAP price for a pool
+    mapping(address => uint256) public lastPrices;
 
     /***
      * Events
@@ -60,39 +56,11 @@ contract VolOracle is DSMath {
 
     /**
      * @notice Creates an volatility oracle for a pool
-     * @param _pool is the Uniswap v3 pool
-     * @param _baseCurrency is the currency to measure the volatility of
-     * @param _quoteCurrency is the currency to quote the volatility in
      * @param _period is how often the oracle needs to be updated
      */
-    constructor(
-        address _pool,
-        address _baseCurrency,
-        address _quoteCurrency,
-        uint32 _period
-    ) {
-        IUniswapV3Pool uniPool = IUniswapV3Pool(_pool);
-        address token0 = uniPool.token0();
-        address token1 = uniPool.token1();
-
-        require(_pool != address(0), "!_pool");
-        require(_baseCurrency != address(0), "!_baseCurrency");
-        require(_quoteCurrency != address(0), "!_quoteCurrency");
+    constructor(uint32 _period) {
         require(_period > 0, "!_period");
 
-        // Check that the base and quote currencies are part of the pool
-        if (_baseCurrency == token0) {
-            require(_quoteCurrency == token1, "quote needs to be token1");
-        } else if (_baseCurrency == token1) {
-            require(_quoteCurrency == token0, "quote needs to be token0");
-        } else {
-            revert("No matching token");
-        }
-
-        pool = _pool;
-        baseCurrency = _baseCurrency;
-        quoteCurrency = _quoteCurrency;
-        baseCurrencyDecimals = IERC20Detailed(_baseCurrency).decimals();
         period = _period;
 
         // 31536000 seconds in a year
@@ -105,12 +73,12 @@ contract VolOracle is DSMath {
     /**
      * @notice Commits an oracle update
      */
-    function commit() external {
+    function commit(address pool) external {
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
         require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
 
-        uint256 price = twap();
-        uint256 _lastPrice = lastPrice;
+        uint256 price = twap(pool);
+        uint256 _lastPrice = lastPrices[pool];
         uint256 periodReturn = _lastPrice > 0 ? wdiv(price, _lastPrice) : 0;
 
         // logReturn is in 10**18
@@ -120,7 +88,7 @@ contract VolOracle is DSMath {
                 ? PRBMathSD59x18.ln(int256(periodReturn)) / 10**10
                 : 0;
 
-        Accumulator storage accum = accumulator;
+        Accumulator storage accum = accumulators[pool];
 
         require(
             block.timestamp >=
@@ -139,7 +107,7 @@ contract VolOracle is DSMath {
         accum.mean = uint96(newMean);
         accum.m2 = uint112(newM2);
         accum.lastTimestamp = commitTimestamp;
-        lastPrice = price;
+        lastPrices[pool] = price;
 
         emit Commit(
             uint16(newCount),
@@ -155,17 +123,21 @@ contract VolOracle is DSMath {
      * @notice Returns the standard deviation of the base currency in 10**8 i.e. 1*10**8 = 100%
      * @return standardDeviation is the standard deviation of the asset
      */
-    function vol() public view returns (uint256 standardDeviation) {
-        return Welford.stdev(accumulator.count, accumulator.m2);
+    function vol(address pool) public view returns (uint256 standardDeviation) {
+        return Welford.stdev(accumulators[pool].count, accumulators[pool].m2);
     }
 
     /**
      * @notice Returns the annualized standard deviation of the base currency in 10**8 i.e. 1*10**8 = 100%
      * @return annualStdev is the annualized standard deviation of the asset
      */
-    function annualizedVol() public view returns (uint256 annualStdev) {
+    function annualizedVol(address pool)
+        public
+        view
+        returns (uint256 annualStdev)
+    {
         return
-            Welford.stdev(accumulator.count, accumulator.m2).mul(
+            Welford.stdev(accumulators[pool].count, accumulators[pool].m2).mul(
                 annualizationConstant
             );
     }
@@ -174,12 +146,16 @@ contract VolOracle is DSMath {
      * @notice Returns the TWAP for the entire Uniswap observation period
      * @return price is the TWAP quoted in quote currency
      */
-    function twap() public view returns (uint256 price) {
+    function twap(address pool) public view returns (uint256 price) {
         (
             int56 oldestTickCumulative,
             int56 newestTickCumulative,
             uint32 duration
-        ) = getTickCumulatives();
+        ) = getTickCumulatives(pool);
+
+        IUniswapV3Pool uniPool = IUniswapV3Pool(pool);
+        address token0 = uniPool.token0();
+        address token1 = uniPool.token1();
 
         int24 timeWeightedAverageTick =
             getTimeWeightedAverageTick(
@@ -190,14 +166,15 @@ contract VolOracle is DSMath {
 
         // Get the price of a unit of asset
         // For ETH, it would be 1 ether (10**18)
+        uint256 baseCurrencyDecimals = IERC20Detailed(token0).decimals();
         uint128 quoteAmount = uint128(1 * 10**baseCurrencyDecimals);
 
         return
             OracleLibrary.getQuoteAtTick(
                 timeWeightedAverageTick,
                 quoteAmount,
-                baseCurrency,
-                quoteCurrency
+                token0,
+                token1
             );
     }
 
@@ -226,7 +203,7 @@ contract VolOracle is DSMath {
      * @return newestTickCumulative is the tick cumulative at the first index of the observations array
      * @return duration is the TWAP duration determined by the difference between newest-oldest
      */
-    function getTickCumulatives()
+    function getTickCumulatives(address pool)
         private
         view
         returns (
