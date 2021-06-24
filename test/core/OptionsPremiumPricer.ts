@@ -21,6 +21,7 @@ describe("OptionsPremiumPricer", () => {
 
   const PERIOD = 43200; // 12 hours
   const WEEK = 604800; // 7 days
+  const WAD = BigNumber.from(10).pow(18);
 
   const ethusdcPool = "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8";
   const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
@@ -97,6 +98,11 @@ describe("OptionsPremiumPricer", () => {
         `premium is ${math.wmul(premium, underlyingPriceShifted).toString()}`
       );
 
+      assert.equal(
+        math.wmul(premium, underlyingPriceShifted).div(WAD).toString(),
+        "142"
+      );
+
       assert.isAbove(
         parseInt(math.wmul(premium, underlyingPriceShifted).toString()),
         parseInt(
@@ -131,6 +137,12 @@ describe("OptionsPremiumPricer", () => {
       );
       console.log(`premiumPut is ${premiumPut}`);
 
+      assert.equal(premiumPut.div(WAD).toString(), "413");
+      assert.equal(
+        math.wmul(premiumCall, underlyingPriceShifted).div(WAD).toString(),
+        "113"
+      );
+
       assert.isAbove(
         parseInt(premiumPut.toString()),
         parseInt(math.wmul(premiumCall, underlyingPriceShifted).toString())
@@ -160,6 +172,12 @@ describe("OptionsPremiumPricer", () => {
           .toString()}`
       );
       console.log(`premiumPut is ${premiumPut}`);
+
+      assert.equal(premiumPut.div(WAD).toString(), "125");
+      assert.equal(
+        math.wmul(premiumCall, underlyingPriceShifted).div(WAD).toString(),
+        "325"
+      );
 
       assert.isAbove(
         parseInt(math.wmul(premiumCall, underlyingPriceShifted).toString()),
@@ -199,6 +217,15 @@ describe("OptionsPremiumPricer", () => {
           .toString()}`
       );
 
+      assert.equal(
+        math.wmul(premiumSmall, underlyingPriceShifted).div(WAD).toString(),
+        "142"
+      );
+      assert.equal(
+        math.wmul(premiumBig, underlyingPriceShifted).div(WAD).toString(),
+        "18"
+      );
+
       assert.isAbove(
         parseInt(math.wmul(premiumSmall, underlyingPriceShifted).toString()),
         parseInt(math.wmul(premiumBig, underlyingPriceShifted).toString())
@@ -226,6 +253,12 @@ describe("OptionsPremiumPricer", () => {
         `premiumCall is ${math.wmul(premiumCall, underlyingPriceShifted)}`
       );
       console.log(`premiumPut is ${premiumPut}`);
+
+      assert.equal(
+        math.wmul(premiumCall, underlyingPriceShifted).div(WAD).toString(),
+        "220"
+      );
+      assert.equal(premiumPut.div(WAD).toString(), "220");
 
       // Broke it up into range because with calls we go from usd -> eth -> usd,
       // whereas with puts we go usd -> usdc which is not 100% equal so it ends up being a bit less
@@ -272,6 +305,21 @@ describe("OptionsPremiumPricer", () => {
         )}`
       );
 
+      assert.equal(
+        math
+          .wmul(premiumSmallTimestamp, underlyingPriceShifted)
+          .div(WAD)
+          .toString(),
+        "142"
+      );
+      assert.equal(
+        math
+          .wmul(premiumBigTimestamp, underlyingPriceShifted)
+          .div(WAD)
+          .toString(),
+        "233"
+      );
+
       assert.isBelow(
         parseInt(
           math.wmul(premiumSmallTimestamp, underlyingPriceShifted).toString()
@@ -310,8 +358,10 @@ describe("OptionsPremiumPricer", () => {
         expiryTimestamp
       );
 
-      console.log(delta.toString());
-      assert.isBelow(parseInt(delta.toString()), 50);
+      console.log(`delta is ${delta.toString()}`);
+
+      assert.equal(delta.toString(), "3457");
+      assert.isBelow(parseInt(delta.toString()), 5000);
     });
 
     it("gets the correct option delta for strike < underlying", async function () {
@@ -325,8 +375,10 @@ describe("OptionsPremiumPricer", () => {
         expiryTimestamp
       );
 
-      console.log(delta.toString());
-      assert.isAbove(parseInt(delta.toString()), 50);
+      console.log(`delta is ${delta.toString()}`);
+
+      assert.equal(delta.toString(), "7559");
+      assert.isAbove(parseInt(delta.toString()), 5000);
     });
 
     it("gets the correct option delta for strike = underlying", async function () {
@@ -347,8 +399,12 @@ describe("OptionsPremiumPricer", () => {
         expiryTimestamp
       );
 
-      console.log(delta.toString());
-      assert.isAbove(parseInt(delta.toString()), 50);
+      console.log(`deltaSmall is ${delta.toString()}`);
+      console.log(`deltaLarger is ${deltaLarger.toString()}`);
+
+      assert.equal(delta.toString(), "5455");
+
+      assert.isAbove(parseInt(delta.toString()), 5000);
       assert.isBelow(
         parseInt(delta.toString()),
         parseInt(deltaLarger.toString())

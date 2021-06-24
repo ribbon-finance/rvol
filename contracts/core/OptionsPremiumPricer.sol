@@ -91,7 +91,7 @@ contract OptionsPremiumPricer is DSMath {
      * https://www.macroption.com/black-scholes-formula/
      * @param st is the strike price of the option
      * @param expiryTimestamp is the unix timestamp of expiry
-     * @return delta for given option. 2 decimals (ex: 81 = 0.81 delta) as this is what strike selection
+     * @return delta for given option. 4 decimals (ex: 8100 = 0.81 delta) as this is what strike selection
      * module recognizes
      */
     function getOptionDelta(uint256 st, uint256 expiryTimestamp)
@@ -110,17 +110,17 @@ contract OptionsPremiumPricer is DSMath {
         uint256 d1;
         uint256 d2;
 
-        // Divide delta by 10 ** 12 to bring it to 2 decimals for strike selection
+        // Divide delta by 10 ** 10 to bring it to 4 decimals for strike selection
         if (sp >= st) {
             (d1, d2) = d(t, v, sp, st);
-            delta = Math.ncdf((Math.FIXED_1 * d1) / 1e18).div(10**12);
+            delta = Math.ncdf((Math.FIXED_1 * d1) / 1e18).div(10**10);
         } else {
             // If underlying < strike price notice we switch st <-> sp passed into d
             (d1, d2) = d(t, v, st, sp);
             delta = uint256(10)
                 .mul(10**13)
                 .sub(Math.ncdf((Math.FIXED_1 * d2) / 1e18))
-                .div(10**12);
+                .div(10**10);
         }
     }
 
