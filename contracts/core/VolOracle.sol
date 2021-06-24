@@ -1,7 +1,9 @@
 //SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.7.3;
 
-import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import {
+    IUniswapV3Pool
+} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import {DSMath} from "../libraries/DSMath.sol";
 import {OracleLibrary} from "../libraries/OracleLibrary.sol";

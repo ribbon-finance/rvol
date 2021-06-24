@@ -21,6 +21,13 @@ contract OptionsPremiumPricer is DSMath {
 
     // For reference - IKEEP3rVolatility: 0xCCdfCB72753CfD55C5afF5d98eA5f9C43be9659d
 
+    /**
+     * @notice Constructor for pricer, deploy one for every pool
+     * @param _pool is the Uniswap v3 pool
+     * @param _volatilityOracle is the oracle for historical volatility
+     * @param _priceOracle is the Chainlink price oracle for the underlying asset
+     * @param _stablesOracle is the Chainlink price oracle for the strike asset (e.g. USDC)
+     */
     constructor(
         address _pool,
         address _volatilityOracle,
