@@ -14,6 +14,7 @@ moment.tz.setDefault("UTC");
 describe("OptionsPremiumPricer", () => {
   let mockOracle: Contract;
   let optionsPremiumPricer: Contract;
+  let testOptionsPremiumPricer: Contract;
   let wethPriceOracle: Contract;
   let signer: SignerWithAddress;
   let underlyingPrice: BigNumber;
@@ -37,6 +38,10 @@ describe("OptionsPremiumPricer", () => {
       "OptionsPremiumPricer",
       signer
     );
+    const TestOptionsPremiumPricer = await getContractFactory(
+      "TestOptionsPremiumPricer",
+      signer
+    );
 
     mockOracle = await TestVolOracle.deploy(PERIOD);
     optionsPremiumPricer = await OptionsPremiumPricer.deploy(
@@ -45,6 +50,13 @@ describe("OptionsPremiumPricer", () => {
       wethPriceOracleAddress,
       usdcPriceOracleAddress
     );
+    testOptionsPremiumPricer = await TestOptionsPremiumPricer.deploy(
+      ethusdcPool,
+      mockOracle.address,
+      wethPriceOracleAddress,
+      usdcPriceOracleAddress
+    );
+
     wethPriceOracle = await ethers.getContractAt(
       "IPriceOracle",
       await optionsPremiumPricer.priceOracle()
@@ -329,6 +341,27 @@ describe("OptionsPremiumPricer", () => {
           math.wmul(premiumBigTimestamp, underlyingPriceShifted).toString()
         )
       );
+    });
+
+    it("fits the gas budget", async function () {
+      const strikePrice = underlyingPrice.add(
+        BigNumber.from(300).mul(BigNumber.from(10).pow(8))
+      );
+      const expiryTimestamp = (await time.now()).add(WEEK);
+
+      const { gas: callGas } = await testOptionsPremiumPricer.testGetPremium(
+        strikePrice,
+        expiryTimestamp,
+        false
+      );
+      const { gas: putGas } = await testOptionsPremiumPricer.testGetPremium(
+        strikePrice,
+        expiryTimestamp,
+        true
+      );
+
+      console.log("getPremium call:", callGas.toNumber());
+      console.log("getPremium put:", putGas.toNumber());
     });
   });
 
