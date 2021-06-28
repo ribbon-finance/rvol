@@ -376,7 +376,7 @@ describe("OptionsPremiumPricer", () => {
 
     it("reverts on timestamp being in the past", async function () {
       await expect(
-        optionsPremiumPricer.getOptionDelta(
+        optionsPremiumPricer["getOptionDelta(uint256,uint256)"](
           0,
           BigNumber.from(await provider.getBlockNumber()).sub(100)
         )
@@ -389,10 +389,9 @@ describe("OptionsPremiumPricer", () => {
       );
       const expiryTimestamp = (await time.now()).add(WEEK);
 
-      const delta = await optionsPremiumPricer.getOptionDelta(
-        strikePrice,
-        expiryTimestamp
-      );
+      const delta = await optionsPremiumPricer[
+        "getOptionDelta(uint256,uint256)"
+      ](strikePrice, expiryTimestamp);
 
       console.log(`delta is ${delta.toString()}`);
 
@@ -406,10 +405,9 @@ describe("OptionsPremiumPricer", () => {
       );
       const expiryTimestamp = (await time.now()).add(WEEK);
 
-      const delta = await optionsPremiumPricer.getOptionDelta(
-        strikePrice,
-        expiryTimestamp
-      );
+      const delta = await optionsPremiumPricer[
+        "getOptionDelta(uint256,uint256)"
+      ](strikePrice, expiryTimestamp);
 
       console.log(`delta is ${delta.toString()}`);
 
@@ -425,15 +423,13 @@ describe("OptionsPremiumPricer", () => {
 
       const expiryTimestamp = (await time.now()).add(WEEK);
 
-      const delta = await optionsPremiumPricer.getOptionDelta(
-        strikePrice,
-        expiryTimestamp
-      );
+      const delta = await optionsPremiumPricer[
+        "getOptionDelta(uint256,uint256)"
+      ](strikePrice, expiryTimestamp);
 
-      const deltaLarger = await optionsPremiumPricer.getOptionDelta(
-        strikePriceLarger,
-        expiryTimestamp
-      );
+      const deltaLarger = await optionsPremiumPricer[
+        "getOptionDelta(uint256,uint256)"
+      ](strikePriceLarger, expiryTimestamp);
 
       console.log(`deltaSmall is ${delta.toString()}`);
       console.log(`deltaLarger is ${deltaLarger.toString()}`);
@@ -454,10 +450,108 @@ describe("OptionsPremiumPricer", () => {
 
       const expiryTimestamp = (await time.now()).add(WEEK);
 
-      const { gas } = await testOptionsPremiumPricer.testGetOptionDelta(
-        strikePriceLarger,
-        expiryTimestamp
+      const { gas } = await testOptionsPremiumPricer[
+        "testGetOptionDelta(uint256,uint256)"
+      ](strikePriceLarger, expiryTimestamp);
+
+      assert.isAtMost(gas.toNumber(), 49000);
+      // console.log("getOptionDelta:", gas.toNumber());
+    });
+  });
+
+  describe("getOptionDelta (overloaded)", () => {
+    time.revertToSnapshotAfterEach();
+    let annualizedVol: BigNumber;
+
+    beforeEach(async () => {
+      await updateVol();
+      let optionsPremiumPricerPool = await optionsPremiumPricer.pool();
+      annualizedVol = (
+        await mockOracle.annualizedVol(optionsPremiumPricerPool)
+      ).mul(BigNumber.from(10).pow(10));
+    });
+
+    it("reverts on timestamp being in the past", async function () {
+      await expect(
+        optionsPremiumPricer["getOptionDelta(uint256,uint256,uint256,uint256)"](
+          0,
+          0,
+          0,
+          BigNumber.from(await provider.getBlockNumber()).sub(100)
+        )
+      ).to.be.revertedWith("Expiry must be in the future!");
+    });
+
+    it("gets the correct option delta for strike > underlying", async function () {
+      const strikePrice = underlyingPrice.add(
+        BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       );
+      const expiryTimestamp = (await time.now()).add(WEEK);
+
+      const delta = await optionsPremiumPricer[
+        "getOptionDelta(uint256,uint256,uint256,uint256)"
+      ](underlyingPrice, strikePrice, annualizedVol, expiryTimestamp);
+
+      console.log(`delta is ${delta.toString()}`);
+
+      assert.equal(delta.toString(), "3457");
+      assert.isBelow(parseInt(delta.toString()), 5000);
+    });
+
+    it("gets the correct option delta for strike < underlying", async function () {
+      const strikePrice = underlyingPrice.sub(
+        BigNumber.from(300).mul(BigNumber.from(10).pow(8))
+      );
+      const expiryTimestamp = (await time.now()).add(WEEK);
+
+      const delta = await optionsPremiumPricer[
+        "getOptionDelta(uint256,uint256,uint256,uint256)"
+      ](underlyingPrice, strikePrice, annualizedVol, expiryTimestamp);
+
+      console.log(`delta is ${delta.toString()}`);
+
+      assert.equal(delta.toString(), "7559");
+      assert.isAbove(parseInt(delta.toString()), 5000);
+    });
+
+    it("gets the correct option delta for strike = underlying", async function () {
+      const strikePrice = underlyingPrice;
+      const strikePriceLarger = underlyingPrice.sub(
+        BigNumber.from(300).mul(BigNumber.from(10).pow(8))
+      );
+
+      const expiryTimestamp = (await time.now()).add(WEEK);
+
+      const delta = await optionsPremiumPricer[
+        "getOptionDelta(uint256,uint256,uint256,uint256)"
+      ](underlyingPrice, strikePrice, annualizedVol, expiryTimestamp);
+
+      const deltaLarger = await optionsPremiumPricer[
+        "getOptionDelta(uint256,uint256,uint256,uint256)"
+      ](underlyingPrice, strikePriceLarger, annualizedVol, expiryTimestamp);
+
+      console.log(`deltaSmall is ${delta.toString()}`);
+      console.log(`deltaLarger is ${deltaLarger.toString()}`);
+
+      assert.equal(delta.toString(), "5455");
+
+      assert.isAbove(parseInt(delta.toString()), 5000);
+      assert.isBelow(
+        parseInt(delta.toString()),
+        parseInt(deltaLarger.toString())
+      );
+    });
+
+    it("fits the gas budget", async function () {
+      const strikePriceLarger = underlyingPrice.sub(
+        BigNumber.from(300).mul(BigNumber.from(10).pow(8))
+      );
+
+      const expiryTimestamp = (await time.now()).add(WEEK);
+
+      const { gas } = await testOptionsPremiumPricer[
+        "testGetOptionDelta(uint256,uint256,uint256,uint256)"
+      ](underlyingPrice, strikePriceLarger, annualizedVol, expiryTimestamp);
 
       assert.isAtMost(gas.toNumber(), 49000);
       // console.log("getOptionDelta:", gas.toNumber());
