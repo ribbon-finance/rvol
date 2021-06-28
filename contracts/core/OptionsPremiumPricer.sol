@@ -141,6 +141,49 @@ contract OptionsPremiumPricer is DSMath {
     }
 
     /**
+     * @notice Calculates the option's delta
+     * Formula reference: `d_1` in https://www.investopedia.com/terms/b/blackscholes.asp
+     * http://www.optiontradingpedia.com/options_delta.htm
+     * https://www.macroption.com/black-scholes-formula/
+     * @param sp is the spot price of the option
+     * @param st is the strike price of the option
+     * @param v is the annualized volatility of the underlying asset
+     * @param expiryTimestamp is the unix timestamp of expiry
+     * @return delta for given option. 4 decimals (ex: 8100 = 0.81 delta) as this is what strike selection
+     * module recognizes
+     */
+    function getOptionDelta(
+        uint256 sp,
+        uint256 st,
+        uint256 v,
+        uint256 expiryTimestamp
+    ) external view returns (uint256 delta) {
+        require(
+            expiryTimestamp > block.timestamp,
+            "Expiry must be in the future!"
+        );
+
+        // days until expiry
+        uint256 t = expiryTimestamp.sub(block.timestamp).div(1 days);
+
+        uint256 d1;
+        uint256 d2;
+
+        // Divide delta by 10 ** 10 to bring it to 4 decimals for strike selection
+        if (sp >= st) {
+            (d1, d2) = derivatives(t, v, sp, st);
+            delta = Math.ncdf((Math.FIXED_1 * d1) / 1e18).div(10**10);
+        } else {
+            // If underlying < strike price notice we switch st <-> sp passed into d
+            (d1, d2) = derivatives(t, v, st, sp);
+            delta = uint256(10)
+                .mul(10**13)
+                .sub(Math.ncdf((Math.FIXED_1 * d2) / 1e18))
+                .div(10**10);
+        }
+    }
+
+    /**
      * @notice Calculates black scholes for both put and call
      * @param t is the days until expiry
      * @param v is the annualized volatility
