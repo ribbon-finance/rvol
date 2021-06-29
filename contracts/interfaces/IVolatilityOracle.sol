@@ -15,6 +15,4 @@ interface IVolatilityOracle {
         external
         view
         returns (uint256 annualStdev);
-
-    function pool() external view returns (address pool);
 }
