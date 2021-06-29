@@ -12,7 +12,7 @@
     "test": "test"
   },
   "author": "Ribbon Finance",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "homepage": "https://ribbon.finance/",
   "keywords": [
     "ribbon",
@@ -25,7 +25,8 @@
   "files": [
     "contracts/core",
     "contracts/libraries",
-    "contracts/interfaces"
+    "contracts/interfaces",
+    "contracts/tests"
   ],
   "engines": {
     "node": ">=10"
