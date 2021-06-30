@@ -49,12 +49,12 @@ contract DSMath {
     uint256 constant WAD = 10**18;
     uint256 constant RAY = 10**27;
 
-    //rounds to zero if x*y < WAD / 2
+    //rounds to zero if x*WAD < y/2
     function wmul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         z = add(mul(x, y), WAD / 2) / WAD;
     }
 
-    //rounds to zero if x*y < WAD / 2
+    //rounds to zero if x*RAY < y/2
     function rmul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         z = add(mul(x, y), RAY / 2) / RAY;
     }

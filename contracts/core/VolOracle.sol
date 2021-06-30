@@ -159,6 +159,8 @@ contract VolOracle is DSMath {
         address token0 = uniPool.token0();
         address token1 = uniPool.token1();
 
+        require(duration > 0, "!duration");
+
         int24 timeWeightedAverageTick =
             getTimeWeightedAverageTick(
                 oldestTickCumulative,

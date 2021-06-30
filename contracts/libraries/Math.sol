@@ -243,7 +243,7 @@ library Math {
     }
 
     function ncdf(uint256 x) internal pure returns (uint256) {
-        int256 t1 = int256(1e7 + ((2315419 * x) / FIXED_1));
+        int256 t1 = int256(1e7 + ((2316419 * x) / FIXED_1));
         uint256 exp = ((x / 2) * x) / FIXED_1;
         int256 d = int256((3989423 * FIXED_1) / optimalExp(uint256(exp)));
         uint256 prob =
@@ -263,7 +263,7 @@ library Math {
     }
 
     function cdf(int256 x) internal pure returns (uint256) {
-        int256 t1 = int256(1e7 + int256((2315419 * abs(x)) / FIXED_1));
+        int256 t1 = int256(1e7 + int256((2316419 * abs(x)) / FIXED_1));
         uint256 exp = uint256((x / 2) * x) / FIXED_1;
         int256 d = int256((3989423 * FIXED_1) / optimalExp(uint256(exp)));
         uint256 prob =

@@ -411,7 +411,7 @@ describe("OptionsPremiumPricer", () => {
 
       console.log(`delta is ${delta.toString()}`);
 
-      assert.equal(delta.toString(), "7559");
+      assert.equal(delta.toString(), "7560");
       assert.isAbove(parseInt(delta.toString()), 5000);
     });
 
@@ -510,7 +510,7 @@ describe("OptionsPremiumPricer", () => {
 
       console.log(`delta is ${delta.toString()}`);
 
-      assert.equal(delta.toString(), "7559");
+      assert.equal(delta.toString(), "7560");
       assert.isAbove(parseInt(delta.toString()), 5000);
     });
 
