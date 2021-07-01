@@ -13,17 +13,14 @@ async function main() {
   const network = hre.network.name;
 
   // We get the contract to deploy
-  const VolOracle = await hre.ethers.getContractFactory(
-    network === "kovan" ? "TestVolOracle" : "VolOracle",
-    deployer
-  );
+  const VolOracle = await hre.ethers.getContractFactory("VolOracle", deployer);
 
   const volOracle = await VolOracle.deploy(program.period);
 
   await volOracle.deployed();
 
   console.log(
-    `\nVolatility Oracle is deployed at ${volOracle.address}, verify with https://etherscan.io/proxyContractChecker?a=${volOracle.address}\n`
+    `\nVolatility Oracle is deployed at ${volOracle.address}, verify with https://etherscan.io/address/${volOracle.address}\n`
   );
 
   await volOracle.deployTransaction.wait(5);

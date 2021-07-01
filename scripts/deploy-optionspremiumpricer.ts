@@ -46,7 +46,7 @@ async function main() {
   await optionsPremiumPricer.deployed();
 
   console.log(
-    `\nOptions Premium Pricer is deployed at ${optionsPremiumPricer.address}, verify with https://etherscan.io/proxyContractChecker?a=${optionsPremiumPricer.address}\n`
+    `\nOptions Premium Pricer is deployed at ${optionsPremiumPricer.address}, verify with https://etherscan.io/address/${optionsPremiumPricer.address}\n`
   );
 
   await optionsPremiumPricer.deployTransaction.wait(5);
