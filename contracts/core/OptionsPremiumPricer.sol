@@ -251,6 +251,7 @@ contract OptionsPremiumPricer is DSMath {
         uint256 sp,
         uint256 st
     ) private pure returns (uint256 d1, uint256 d2) {
+        require(v > 1e9);
         uint256 sigma = ((v**2) / 2);
         uint256 sigmaB = 1e36;
 
