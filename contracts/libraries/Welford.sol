@@ -55,6 +55,7 @@ library Welford {
         pure
         returns (uint256)
     {
+        require(count > 0, "!count");
         return m2 / count;
     }
 
