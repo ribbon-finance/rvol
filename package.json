@@ -12,7 +12,7 @@
     "test": "test"
   },
   "author": "Ribbon Finance",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "homepage": "https://ribbon.finance/",
   "keywords": [
     "ribbon",
@@ -58,6 +58,10 @@
     "ts-mocha": "^8.0.0",
     "ts-node": "^10.0.0",
     "typescript": "^4.3.2"
+  },
+  "resolutions": {
+    "lodash": "4.17.21",
+    "underscore": "1.12.1"
   },
   "scripts": {
     "test": "npx hardhat test",
