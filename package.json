@@ -96,6 +96,7 @@
   "dependencies": {
     "@uniswap/v3-core": "^1.0.0",
     "@uniswap/v3-periphery": "^1.0.1",
+    "axios": "^0.21.1",
     "hardhat-log-remover": "^2.0.2"
   }
 }
