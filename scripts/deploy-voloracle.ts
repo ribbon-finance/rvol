@@ -12,6 +12,8 @@ async function main() {
   const [deployer] = await hre.ethers.getSigners();
   const network = hre.network.name;
 
+  console.log(`Deploying to ${network}`);
+
   // We get the contract to deploy
   const VolOracle = await hre.ethers.getContractFactory("VolOracle", deployer);
 
