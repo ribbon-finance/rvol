@@ -27,6 +27,12 @@ export default {
         blockNumber: 12529250,
       },
     },
+    mainnet: {
+      url: process.env.MAINNET_URI,
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+      },
+    },
   },
   mocha: {
     timeout: 500000,
