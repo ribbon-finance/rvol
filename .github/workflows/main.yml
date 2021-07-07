@@ -35,10 +35,14 @@ jobs:
         run: yarn compile
         env:
           TEST_URI: ${{ secrets.TEST_URI }}
+          MNEMONIC: ${{ secrets.MNEMONIC }}
+          MAINNET_URI: ${{ secrets.MAINNET_URI }}
           CI: true
       - run: yarn test
         env:
           TEST_URI: ${{ secrets.TEST_URI }}
+          MNEMONIC: ${{ secrets.MNEMONIC }}
+          MAINNET_URI: ${{ secrets.MAINNET_URI }}
           CI: true
   lint:
     runs-on: ubuntu-latest
