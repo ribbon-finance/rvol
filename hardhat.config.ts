@@ -1,5 +1,6 @@
 import "@nomiclabs/hardhat-waffle";
 import "hardhat-log-remover";
+import "@nomiclabs/hardhat-etherscan";
 
 require("dotenv").config();
 
@@ -33,6 +34,9 @@ export default {
         mnemonic: process.env.MNEMONIC,
       },
     },
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY,
   },
   mocha: {
     timeout: 500000,
