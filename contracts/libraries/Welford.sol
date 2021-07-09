@@ -3,6 +3,7 @@ pragma solidity 0.7.3;
 
 import {SignedSafeMath} from "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import {Math} from "./Math.sol";
+import "hardhat/console.sol";
 
 // REFERENCE
 // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
@@ -18,15 +19,15 @@ library Welford {
      */
     function update(
         uint256 curCount,
-        uint256 curMean,
+        int256 curMean,
         uint256 curM2,
         int256 newValue
     )
         internal
-        pure
+        view
         returns (
             uint256 count,
-            uint256 mean,
+            int256 mean,
             uint256 m2
         )
     {
@@ -37,11 +38,10 @@ library Welford {
         int256 _m2 = int256(curM2).add(delta.mul(delta2));
 
         require(_count > 0, "count<=0");
-        require(_mean >= 0, "mean<0");
         require(_m2 >= 0, "m2<0");
 
         count = uint256(_count);
-        mean = uint256(_mean);
+        mean = _mean;
         m2 = uint256(_m2);
     }
 
