@@ -23,7 +23,7 @@ library Welford {
         int256 newValue
     )
         internal
-        view
+        pure
         returns (
             uint256 count,
             int256 mean,
