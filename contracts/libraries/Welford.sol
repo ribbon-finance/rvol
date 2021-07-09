@@ -3,7 +3,6 @@ pragma solidity 0.7.3;
 
 import {SignedSafeMath} from "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import {Math} from "./Math.sol";
-import "hardhat/console.sol";
 
 // REFERENCE
 // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
