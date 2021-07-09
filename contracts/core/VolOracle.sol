@@ -102,7 +102,7 @@ contract VolOracle is DSMath {
             Welford.update(accum.count, accum.mean, accum.m2, logReturn);
 
         require(newCount < type(uint16).max, ">U16");
-        require(newMean < type(int96).max, ">U96");
+        require(newMean < type(int96).max, ">I96");
         require(newM2 < type(uint112).max, ">U112");
 
         accum.count = uint16(newCount);
