@@ -18,7 +18,7 @@ describe("ManualVolOracle", () => {
 
   before(async function () {
     [signer, signer2] = await ethers.getSigners();
-    const ManualVolOracle = await getContractFactory("VolOracle", signer);
+    const ManualVolOracle = await getContractFactory("ManualVolOracle", signer);
 
     oracle = await ManualVolOracle.deploy(signer.address);
   });
