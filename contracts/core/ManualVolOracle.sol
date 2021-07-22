@@ -22,7 +22,7 @@ contract VolOracle is AccessControl {
 
     /// @dev A modifier which checks that the caller has the admin role.
     modifier onlyAdmin() {
-        require(hasRole(ADMIN_ROLE, msg.sender), "VolOracle: only admin");
+        require(hasRole(ADMIN_ROLE, msg.sender), "!admin");
         _;
     }
 
@@ -55,6 +55,7 @@ contract VolOracle is AccessControl {
         external
         onlyAdmin
     {
+        require(annualizedVol > 0, "!annualizedVol");
         annualizedVols[pool] = annualizedVol;
     }
 }
