@@ -3,7 +3,7 @@ pragma solidity 0.7.3;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract VolOracle is AccessControl {
+contract ManualVolOracle is AccessControl {
     /// @dev The identifier of the role which maintains other roles.
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN");
 
