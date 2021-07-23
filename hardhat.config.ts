@@ -6,7 +6,7 @@ import deployOptionsPremiumPricer from "./scripts/deploy-optionspremiumpricer";
 
 require("dotenv").config();
 
-process.env.TEST_MNEMONIC =
+process.env.TEST_MNEMONIC = !!process.env.TEST_MNEMONIC ? process.env.TEST_MNEMONIC : 
   "test test test test test test test test test test test junk";
 
 export default {
