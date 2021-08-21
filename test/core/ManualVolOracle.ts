@@ -4,6 +4,7 @@ import { Contract } from "@ethersproject/contracts";
 import moment from "moment-timezone";
 import * as time from "../helpers/time";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { BigNumber } from "ethers";
 
 const { getContractFactory } = ethers;
 
@@ -43,11 +44,29 @@ describe("ManualVolOracle", () => {
       let annualizedVol = 0;
       await expect(
         oracle.setAnnualizedVol(ethusdcPool, annualizedVol)
-      ).to.be.revertedWith("!annualizedVol");
+      ).to.be.revertedWith("Cannot be less than 50%");
+    });
+
+    it("reverts when passing <50% as annualized vol", async function () {
+      await expect(
+        oracle.setAnnualizedVol(
+          ethusdcPool,
+          BigNumber.from(50).mul(BigNumber.from(10).pow(6))
+        )
+      ).to.be.revertedWith("Cannot be less than 50%");
+    });
+
+    it("reverts when passing >200% as annualized vol", async function () {
+      await expect(
+        oracle.setAnnualizedVol(
+          ethusdcPool,
+          BigNumber.from(200).mul(BigNumber.from(10).pow(6))
+        )
+      ).to.be.revertedWith("Cannot be more than 200%");
     });
 
     it("sets the annualized vol for the pool", async function () {
-      let annualizedVol = 1;
+      let annualizedVol = BigNumber.from(10).pow(8);
       await oracle.setAnnualizedVol(ethusdcPool, annualizedVol);
       assert.equal(
         (await oracle.annualizedVol(ethusdcPool)).toString(),
