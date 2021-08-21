@@ -56,7 +56,7 @@ contract ManualVolOracle is AccessControl {
         onlyAdmin
     {
         require(_annualizedVol > 50 * 10**6, "Cannot be less than 50%");
-        require(_annualizedVol < 200 * 10**6, "Cannot be more than 200%");
+        require(_annualizedVol < 400 * 10**6, "Cannot be more than 400%");
         annualizedVols[_pool] = _annualizedVol;
     }
 }

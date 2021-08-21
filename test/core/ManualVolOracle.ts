@@ -56,13 +56,13 @@ describe("ManualVolOracle", () => {
       ).to.be.revertedWith("Cannot be less than 50%");
     });
 
-    it("reverts when passing >200% as annualized vol", async function () {
+    it("reverts when passing >400% as annualized vol", async function () {
       await expect(
         oracle.setAnnualizedVol(
           ethusdcPool,
-          BigNumber.from(200).mul(BigNumber.from(10).pow(6))
+          BigNumber.from(400).mul(BigNumber.from(10).pow(6))
         )
-      ).to.be.revertedWith("Cannot be more than 200%");
+      ).to.be.revertedWith("Cannot be more than 400%");
     });
 
     it("sets the annualized vol for the pool", async function () {
