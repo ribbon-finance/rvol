@@ -36,12 +36,12 @@ describe("Welford", () => {
     time.revertToSnapshotAfterEach();
 
     it("takes in negative values", async function () {
-      await testWelford.update(-100);
+      await testWelford.update(0, -100, 0, 14);
       assert.equal((await testWelford.count()).toString(), "1");
       assert.equal((await testWelford.mean()).toString(), BigNumber.from(-100));
       assert.equal((await testWelford.m2()).toString(), BigNumber.from(0));
 
-      await testWelford.update(-200);
+      await testWelford.update(0, -200, 0, 14);
       assert.equal((await testWelford.count()).toString(), "2");
       assert.equal((await testWelford.mean()).toString(), BigNumber.from(-150));
       assert.equal((await testWelford.m2()).toString(), BigNumber.from(5000));
@@ -62,7 +62,7 @@ describe("Welford", () => {
       }
 
       for (let i = 0; i < values.length; i++) {
-        await testWelford.update(values[i]);
+        await testWelford.update(0, values[i], 0, 14);
       }
       const welfordStdev = await testWelford.stdev();
       const actualStdev = stdev(values);

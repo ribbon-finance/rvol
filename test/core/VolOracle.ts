@@ -16,6 +16,7 @@ describe("VolOracle", () => {
   let signer: SignerWithAddress;
 
   const PERIOD = 43200; // 12 hours
+  const WINDOW_IN_DAYS = 7; // weekly vol data
   const COMMIT_PHASE_DURATION = 1800; // 30 mins
   const ethusdcPool = "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8";
   // const wbtcusdcPool = "0x99ac8cA7087fA4A2A1FB6357269965A2014ABc35";
@@ -25,8 +26,8 @@ describe("VolOracle", () => {
     const VolOracle = await getContractFactory("VolOracle", signer);
     const TestVolOracle = await getContractFactory("TestVolOracle", signer);
 
-    oracle = await VolOracle.deploy(PERIOD);
-    mockOracle = await TestVolOracle.deploy(PERIOD);
+    oracle = await VolOracle.deploy(PERIOD, WINDOW_IN_DAYS);
+    mockOracle = await TestVolOracle.deploy(PERIOD, WINDOW_IN_DAYS);
     // oracle = await VolOracle.deploy(ethusdcPool, weth, usdc);
   });
 
@@ -48,7 +49,6 @@ describe("VolOracle", () => {
       await oracle.commit(ethusdcPool);
 
       const {
-        count: count1,
         lastTimestamp: timestamp1,
         mean: mean1,
         m2: m2_1,

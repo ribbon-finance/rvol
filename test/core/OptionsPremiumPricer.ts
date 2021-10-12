@@ -21,6 +21,7 @@ describe("OptionsPremiumPricer", () => {
   let underlyingPriceShifted: BigNumber;
 
   const PERIOD = 43200; // 12 hours
+  const WINDOW_IN_DAYS = 7; // weekly vol data
   const WEEK = 604800; // 7 days
   const WAD = BigNumber.from(10).pow(18);
 
@@ -43,7 +44,7 @@ describe("OptionsPremiumPricer", () => {
       signer
     );
 
-    mockOracle = await TestVolOracle.deploy(PERIOD);
+    mockOracle = await TestVolOracle.deploy(PERIOD, WINDOW_IN_DAYS);
     optionsPremiumPricer = await OptionsPremiumPricer.deploy(
       ethusdcPool,
       mockOracle.address,
