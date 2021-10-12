@@ -39,8 +39,17 @@ contract TestVolOracle is DSMath, VolOracle {
             "Committed"
         );
 
-        (int256 newMean, uint256 newM2) =
-            Welford.update(windowSize, accum.mean, accum.m2, logReturn);
+        uint256 currObv = accum.currObv;
+
+        (int256 newMean, uint256 newM2, uint256 m2Diff) =
+            Welford.update(
+                windowSize,
+                accum.mean,
+                accum.m2,
+                accum.m2observations[currObv],
+                accum.observations[currObv],
+                logReturn
+            );
 
         require(newMean < type(int96).max, ">U96");
         require(newM2 < type(uint112).max, ">U112");
@@ -48,6 +57,9 @@ contract TestVolOracle is DSMath, VolOracle {
         accum.mean = int96(newMean);
         accum.m2 = uint112(newM2);
         accum.lastTimestamp = commitTimestamp;
+        accum.observations[currObv] = logReturn;
+        accum.m2observations[currObv] = m2Diff;
+        accum.currObv = uint8((currObv + 1) % windowSize);
         lastPrices[pool] = price;
 
         emit Commit(
