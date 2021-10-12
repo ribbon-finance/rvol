@@ -12,7 +12,9 @@ contract TestVolOracle is DSMath, VolOracle {
     using SafeMath for uint256;
     uint256 private _price;
 
-    constructor(uint32 _period) VolOracle(_period) {}
+    constructor(uint32 _period, uint256 _windowInDays)
+        VolOracle(_period, _windowInDays)
+    {}
 
     function mockCommit(address pool) external {
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
@@ -37,21 +39,18 @@ contract TestVolOracle is DSMath, VolOracle {
             "Committed"
         );
 
-        (uint256 newCount, int256 newMean, uint256 newM2) =
-            Welford.update(accum.count, accum.mean, accum.m2, logReturn);
+        (int256 newMean, uint256 newM2) =
+            Welford.update(windowSize, accum.mean, accum.m2, logReturn);
 
-        require(newCount < type(uint16).max, ">U16");
         require(newMean < type(int96).max, ">U96");
         require(newM2 < type(uint112).max, ">U112");
 
-        accum.count = uint16(newCount);
         accum.mean = int96(newMean);
         accum.m2 = uint112(newM2);
         accum.lastTimestamp = commitTimestamp;
         lastPrices[pool] = price;
 
         emit Commit(
-            uint16(newCount),
             uint32(commitTimestamp),
             int96(newMean),
             uint112(newM2),

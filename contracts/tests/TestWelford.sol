@@ -8,11 +8,11 @@ contract TestWelford {
     int256 public mean;
     uint256 public m2;
 
-    function update(int256 newValue) external {
-        (uint256 newCount, int256 newMean, uint256 newM2) =
-            Welford.update(count, mean, m2, newValue);
+    function update(int256 newValue, uint256 windowSize) external {
+        (int256 newMean, uint256 newM2) =
+            Welford.update(windowSize, mean, m2, newValue);
 
-        count = newCount;
+        count = windowSize;
         mean = newMean;
         m2 = newM2;
     }

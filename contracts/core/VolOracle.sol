@@ -19,6 +19,7 @@ contract VolOracle is DSMath {
      * Immutables
      */
     uint32 public immutable period;
+    uint256 public immutable windowSize;
     uint256 public immutable annualizationConstant;
     uint256 internal constant commitPhaseDuration = 1800; // 30 minutes from every period
 
@@ -26,9 +27,7 @@ contract VolOracle is DSMath {
      * Storage
      */
     struct Accumulator {
-        // Max number of records: 2^16-1 = 65535.
-        // If we commit twice a day, we get to have a max of ~89 years.
-        uint16 count;
+        uint32[] observations;
         // Timestamp of the last record
         uint32 lastTimestamp;
         // Smaller size because prices denominated in USDC, max 7.9e27
@@ -48,7 +47,6 @@ contract VolOracle is DSMath {
      */
 
     event Commit(
-        uint16 count,
         uint32 commitTimestamp,
         int96 mean,
         uint112 m2,
@@ -59,11 +57,14 @@ contract VolOracle is DSMath {
     /**
      * @notice Creates an volatility oracle for a pool
      * @param _period is how often the oracle needs to be updated
+     * @param _windowInDays is how many days the window should be
      */
-    constructor(uint32 _period) {
+    constructor(uint32 _period, uint256 _windowInDays) {
         require(_period > 0, "!_period");
+        require(_windowInDays > 0, "!_windowInDays");
 
         period = _period;
+        windowSize = _windowInDays.mul(uint256(1 days).div(_period));
 
         // 31536000 seconds in a year
         // divided by the period duration
@@ -98,21 +99,18 @@ contract VolOracle is DSMath {
             "Committed"
         );
 
-        (uint256 newCount, int256 newMean, uint256 newM2) =
-            Welford.update(accum.count, accum.mean, accum.m2, logReturn);
+        (int256 newMean, uint256 newM2) =
+            Welford.update(windowSize, accum.mean, accum.m2, logReturn);
 
-        require(newCount < type(uint16).max, ">U16");
         require(newMean < type(int96).max, ">I96");
         require(newM2 < type(uint112).max, ">U112");
 
-        accum.count = uint16(newCount);
         accum.mean = int96(newMean);
         accum.m2 = uint112(newM2);
         accum.lastTimestamp = commitTimestamp;
         lastPrices[pool] = price;
 
         emit Commit(
-            uint16(newCount),
             uint32(commitTimestamp),
             int96(newMean),
             uint112(newM2),
@@ -126,7 +124,7 @@ contract VolOracle is DSMath {
      * @return standardDeviation is the standard deviation of the asset
      */
     function vol(address pool) public view returns (uint256 standardDeviation) {
-        return Welford.stdev(accumulators[pool].count, accumulators[pool].m2);
+        return Welford.stdev(windowSize, accumulators[pool].m2);
     }
 
     /**
@@ -139,7 +137,7 @@ contract VolOracle is DSMath {
         returns (uint256 annualStdev)
     {
         return
-            Welford.stdev(accumulators[pool].count, accumulators[pool].m2).mul(
+            Welford.stdev(windowSize, accumulators[pool].m2).mul(
                 annualizationConstant
             );
     }
