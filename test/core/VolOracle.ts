@@ -53,7 +53,6 @@ describe("VolOracle", () => {
         mean: mean1,
         m2: m2_1,
       } = await oracle.accumulators(ethusdcPool);
-      assert.equal(count1, 1);
       assert.equal(timestamp1, topOfPeriod);
       assert.equal(mean1.toNumber(), 0);
       assert.equal(m2_1.toNumber(), 0);
