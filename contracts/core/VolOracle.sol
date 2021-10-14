@@ -108,7 +108,7 @@ contract VolOracle is DSMath {
 
         (int256 newMean, uint256 newM2, uint256 m2Diff) =
             Welford.update(
-                windowSize,
+                accum.observations[currObv] == 0 ? currObv : windowSize,
                 accum.mean,
                 accum.m2,
                 accum.m2observations[currObv],

@@ -34,13 +34,14 @@ library Welford {
             uint256 m2Diff
         )
     {
-        curMean = curCount > 1
-            ? curMean.mul(int256(curCount)).sub(oldValue).div(
-                int256(curCount) - 1
-            )
-            : 0;
-        int256 delta = newValue.sub(int256(curMean));
-        int256 _mean = int256(curMean).add(delta.div(int256(curCount)));
+        int256 _mean =
+            curCount > 1
+                ? curMean.mul(int256(curCount)).sub(oldValue).div(
+                    int256(curCount) - 1
+                )
+                : 0;
+        int256 delta = newValue.sub(int256(_mean));
+        _mean = int256(_mean).add(delta.div(int256(curCount)));
         int256 delta2 = newValue.sub(_mean);
         int256 _m2Diff = delta.mul(delta2);
         int256 _m2 = int256(curM2).add(_m2Diff).sub(int256(oldM2Diff));
