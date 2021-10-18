@@ -3,7 +3,6 @@ pragma solidity 0.7.3;
 
 import {SignedSafeMath} from "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import {Math} from "./Math.sol";
-import "hardhat/console.sol";
 
 // REFERENCE
 // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
@@ -11,76 +10,63 @@ library Welford {
     using SignedSafeMath for int256;
 
     /**
-     * @notice Performs an update of the tuple (count, mean, m2) using the new value
+     * @notice Performs an update of the mean and stdev using online algorithm
      * @param curCount is the current value for count
-     * @param curMean is the current value for mean
-     * @param curM2 is the current value for M2
-     * @param oldM2Diff is the difference in M2 from adding oldValue to data set
      * @param oldValue is the old value to be removed from the dataset
      * @param newValue is the new value to be added into the dataset
+     * @param curMean is the current value for mean
+     * @param curDSQ is the current value for DSQ
      */
     function update(
         uint256 curCount,
-        int256 curMean,
-        uint256 curM2,
-        uint256 oldM2Diff,
         int256 oldValue,
-        int256 newValue
-    )
-        internal
-        view
-        returns (
-            int256 mean,
-            uint256 m2,
-            uint256 m2Diff
-        )
-    {
-        // If the value from the beginning of the week
-        // is non-zero then subtract it from mean
-        int256 _mean =
-            curCount > 1 && oldValue > 0
-                ? curMean.mul(int256(curCount)).sub(oldValue).div(
-                    int256(curCount) - 1
+        int256 newValue,
+        int256 curMean,
+        int256 curDSQ
+    ) internal view returns (int256 mean, int256 dsq) {
+        if (curCount == 1 && oldValue == 0) {
+            // initialize when the first value is added
+            mean = newValue;
+        } else if (oldValue == 0) {
+            // if the buffer is not full yet, use standard Welford method
+            int256 meanIncrement =
+                (newValue.sub(curMean)).div(int256(curCount));
+            mean = curMean.add(meanIncrement);
+            dsq = curDSQ.add((newValue.sub(mean)).mul(newValue.sub(curMean)));
+        } else {
+            // once the buffer is full, adjust Welford Method for window size
+            int256 meanIncrement = newValue.sub(oldValue).div(int256(curCount));
+            mean = curMean.add(meanIncrement);
+            dsq = curDSQ.add(
+                (newValue.sub(oldValue)).mul(
+                    newValue.add(oldValue).sub(mean).sub(curMean)
                 )
-                : curMean;
-        int256 delta = newValue.sub(int256(_mean));
-        _mean = int256(_mean).add(delta.div(int256(curCount + 1)));
-        int256 delta2 = newValue.sub(_mean);
-        int256 _m2Diff = delta.mul(delta2);
-        int256 _m2 = int256(curM2).add(_m2Diff).sub(int256(oldM2Diff));
-        console.log(
-            "adding %s and subtracting %s",
-            uint256(_m2Diff),
-            oldM2Diff
-        );
+            );
+        }
 
-        require(_m2 >= 0, "m2<0");
-
-        mean = _mean;
-        m2 = uint256(_m2);
-        m2Diff = uint256(_m2Diff);
+        require(dsq >= 0, "dsq<0");
     }
 
     /**
      * @notice Calculate the variance using the existing tuple (count, mean, m2)
      * @param count is the length of the dataset
-     * @param m2 is the sum of square errors
+     * @param dsq is the variance * count
      */
-    function variance(uint256 count, uint256 m2)
+    function variance(uint256 count, int256 dsq)
         internal
-        pure
+        view
         returns (uint256)
     {
         require(count > 0, "!count");
-        return m2 / count;
+        return uint256(uint256(dsq) / count);
     }
 
     /**
      * @notice Calculate the standard deviation using the existing tuple (count, mean, m2)
      * @param count is the length of the dataset
-     * @param m2 is the sum of square errors
+     * @param dsq is the variance * count
      */
-    function stdev(uint256 count, uint256 m2) internal pure returns (uint256) {
-        return Math.sqrt(variance(count, m2));
+    function stdev(uint256 count, int256 dsq) internal view returns (uint256) {
+        return Math.sqrt(variance(count, dsq));
     }
 }

@@ -1,51 +1,48 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.7.3;
 
+import {SignedSafeMath} from "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import {Welford} from "../libraries/Welford.sol";
 
 contract TestWelford {
+    using SignedSafeMath for int256;
     int256 public mean;
-    uint256 public m2;
+    int256 public dsq;
     uint256 public windowSize;
     // Stores log-return observations over window
     int256[] public observations;
-    // Stores m2 observations over window
-    uint256[] public m2observations;
     // Stores the index of next observation
     uint256 public currObv;
 
     function update(int256 newValue, uint256 newWindowSize) external {
-        (int256 newMean, uint256 newM2, uint256 m2Diff) =
+        (int256 newMean, int256 newDSQ) =
             Welford.update(
-                observations.length < newWindowSize ? currObv : newWindowSize,
-                mean,
-                m2,
                 observations.length < newWindowSize
-                    ? 0
-                    : m2observations[currObv],
+                    ? currObv + 1
+                    : newWindowSize,
                 observations.length < newWindowSize ? 0 : observations[currObv],
-                newValue
+                newValue,
+                mean,
+                dsq
             );
 
         if (observations.length < newWindowSize) {
             observations.push(newValue);
-            m2observations.push(m2Diff);
         } else {
             observations[currObv] = newValue;
-            m2observations[currObv] = m2Diff;
         }
         currObv = uint8((currObv + 1) % newWindowSize);
 
         windowSize = newWindowSize;
         mean = newMean;
-        m2 = newM2;
+        dsq = newDSQ;
     }
 
     function stdev() external view returns (uint256) {
         return
             Welford.stdev(
                 observations.length < windowSize ? currObv : windowSize,
-                m2
+                dsq
             );
     }
 }
