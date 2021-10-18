@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { assert } from "chai";
-import { Contract } from "@ethersproject/contracts";
+import { Contract } from "ethers";
 import { BigNumber } from "ethers";
 import { pricesToReturns } from "../helpers/math";
 

@@ -3,6 +3,7 @@ pragma solidity 0.7.3;
 
 import {SignedSafeMath} from "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import {Math} from "./Math.sol";
+import "hardhat/console.sol";
 
 // REFERENCE
 // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
@@ -27,26 +28,32 @@ library Welford {
         int256 newValue
     )
         internal
-        pure
+        view
         returns (
             int256 mean,
             uint256 m2,
             uint256 m2Diff
         )
     {
+        // If the value from the beginning of the week
+        // is non-zero then subtract it from mean
         int256 _mean =
-            curCount > 1
+            curCount > 1 && oldValue > 0
                 ? curMean.mul(int256(curCount)).sub(oldValue).div(
                     int256(curCount) - 1
                 )
-                : 0;
+                : curMean;
         int256 delta = newValue.sub(int256(_mean));
-        _mean = int256(_mean).add(delta.div(int256(curCount)));
+        _mean = int256(_mean).add(delta.div(int256(curCount + 1)));
         int256 delta2 = newValue.sub(_mean);
         int256 _m2Diff = delta.mul(delta2);
         int256 _m2 = int256(curM2).add(_m2Diff).sub(int256(oldM2Diff));
+        console.log(
+            "adding %s and subtracting %s",
+            uint256(_m2Diff),
+            oldM2Diff
+        );
 
-        require(curCount > 0, "count<=0");
         require(_m2 >= 0, "m2<0");
 
         mean = _mean;
