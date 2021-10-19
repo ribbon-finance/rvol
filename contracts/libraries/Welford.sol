@@ -24,7 +24,9 @@ library Welford {
         int256 curMean,
         int256 curDSQ
     ) internal pure returns (int256 mean, int256 dsq) {
-        // Source https://nestedsoftware.com/2019/09/26/incremental-average-and-standard-deviation-with-sliding-window-470k.176143.html
+        // Source
+        //https://nestedsoftware.com/2019/09/26/incremental-average-and
+        //-standard-deviation-with-sliding-window-470k.176143.html
         if (curCount == 1 && oldValue == 0) {
             // initialize when the first value is added
             mean = newValue;
