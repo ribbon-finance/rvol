@@ -45,6 +45,10 @@ contract VolOracle is DSMath {
     /// @dev Stores the last oracle TWAP price for a pool
     mapping(address => uint256) public lastPrices;
 
+    /// @dev Stores whether we have backfilled weekly yet
+    // Saves on gas so we don't access accumulator from storage each time
+    mapping(address => bool) public hasWrapped;
+
     /***
      * Events
      */
@@ -106,12 +110,8 @@ contract VolOracle is DSMath {
 
         (int256 newMean, int256 newDSQ) =
             Welford.update(
-                accum.observations.length < windowSize
-                    ? currObv + 1
-                    : windowSize,
-                accum.observations.length < windowSize
-                    ? 0
-                    : accum.observations[currObv],
+                !hasWrapped[pool] ? currObv + 1 : windowSize,
+                !hasWrapped[pool] ? 0 : accum.observations[currObv],
                 logReturn,
                 accum.mean,
                 accum.dsq
@@ -120,8 +120,11 @@ contract VolOracle is DSMath {
         require(newMean < type(int96).max, ">I96");
         require(newDSQ < type(uint112).max, ">U112");
 
-        if (accum.observations.length < windowSize) {
+        if (!hasWrapped[pool]) {
             accum.observations.push(logReturn);
+            if (accum.observations.length == windowSize) {
+                hasWrapped[pool] = true;
+            }
         } else {
             accum.observations[currObv] = logReturn;
         }
@@ -146,7 +149,11 @@ contract VolOracle is DSMath {
      * @return standardDeviation is the standard deviation of the asset
      */
     function vol(address pool) public view returns (uint256 standardDeviation) {
-        return Welford.stdev(windowSize, accumulators[pool].dsq);
+        return
+            Welford.stdev(
+                !hasWrapped[pool] ? accumulators[pool].currObv : windowSize,
+                accumulators[pool].dsq
+            );
     }
 
     /**
@@ -159,9 +166,13 @@ contract VolOracle is DSMath {
         returns (uint256 annualStdev)
     {
         return
-            Welford.stdev(windowSize, accumulators[pool].dsq).mul(
-                annualizationConstant
-            );
+            Welford
+                .stdev(
+                !hasWrapped[pool] ? accumulators[pool].currObv : windowSize,
+                accumulators[pool]
+                    .dsq
+            )
+                .mul(annualizationConstant);
     }
 
     /**

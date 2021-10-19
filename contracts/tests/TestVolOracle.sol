@@ -43,12 +43,8 @@ contract TestVolOracle is DSMath, VolOracle {
 
         (int256 newMean, int256 newDSQ) =
             Welford.update(
-                accum.observations.length < windowSize
-                    ? currObv + 1
-                    : windowSize,
-                accum.observations.length < windowSize
-                    ? 0
-                    : accum.observations[currObv],
+                !hasWrapped[pool] ? currObv + 1 : windowSize,
+                !hasWrapped[pool] ? 0 : accum.observations[currObv],
                 logReturn,
                 accum.mean,
                 accum.dsq
@@ -57,8 +53,11 @@ contract TestVolOracle is DSMath, VolOracle {
         require(newMean < type(int96).max, ">I96");
         require(newDSQ < type(uint112).max, ">U112");
 
-        if (accum.observations.length < windowSize) {
+        if (!hasWrapped[pool]) {
             accum.observations.push(logReturn);
+            if (accum.observations.length == windowSize) {
+                hasWrapped[pool] = true;
+            }
         } else {
             accum.observations[currObv] = logReturn;
         }

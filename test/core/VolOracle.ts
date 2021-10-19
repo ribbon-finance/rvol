@@ -15,7 +15,7 @@ describe("VolOracle", () => {
   let mockOracle: Contract;
   let signer: SignerWithAddress;
 
-  const PERIOD = 43200; // 12 hours
+  const PERIOD = 86400 / 2; // 12 hours
   const WINDOW_IN_DAYS = 7; // weekly vol data
   const COMMIT_PHASE_DURATION = 1800; // 30 mins
   const ethusdcPool = "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8";
@@ -51,11 +51,11 @@ describe("VolOracle", () => {
       const {
         lastTimestamp: timestamp1,
         mean: mean1,
-        m2: m2_1,
+        dsq: dsq1,
       } = await oracle.accumulators(ethusdcPool);
       assert.equal(timestamp1, topOfPeriod);
       assert.equal(mean1.toNumber(), 0);
-      assert.equal(m2_1.toNumber(), 0);
+      assert.equal(dsq1.toNumber(), 0);
 
       let stdev = await oracle.vol(ethusdcPool);
       assert.equal(stdev.toNumber(), 0);
@@ -111,14 +111,14 @@ describe("VolOracle", () => {
       // First time is more expensive
       const tx1 = await oracle.commit(ethusdcPool);
       const receipt1 = await tx1.wait();
-      assert.isAtMost(receipt1.gasUsed.toNumber(), 99000);
+      assert.isAtMost(receipt1.gasUsed.toNumber(), 124559);
 
       await time.increaseTo(topOfPeriod + PERIOD);
 
       // Second time is cheaper
       const tx2 = await oracle.commit(ethusdcPool);
       const receipt2 = await tx2.wait();
-      assert.isAtMost(receipt2.gasUsed.toNumber(), 62000);
+      assert.isAtMost(receipt2.gasUsed.toNumber(), 72136);
     });
 
     it("updates the vol", async function () {
@@ -162,6 +162,9 @@ describe("VolOracle", () => {
         BigNumber.from("2250000000"),
         BigNumber.from("2250000000"),
         BigNumber.from("2650000000"),
+        BigNumber.from("2450000000"),
+        BigNumber.from("2450000000"),
+        BigNumber.from("2650000000"),
       ];
 
       for (let i = 0; i < values.length; i++) {
@@ -170,11 +173,11 @@ describe("VolOracle", () => {
         await time.increaseTo(topOfPeriod);
         await mockOracle.mockCommit(ethusdcPool);
       }
-      assert.equal((await mockOracle.vol(ethusdcPool)).toString(), "6121243"); // 6.12%
+      assert.equal((await mockOracle.vol(ethusdcPool)).toString(), "6607827"); // 6.6%
       assert.equal(
         (await mockOracle.annualizedVol(ethusdcPool)).toString(),
-        "165273561"
-      ); // 165% annually
+        "178411329"
+      ); // 178% annually
     });
   });
 

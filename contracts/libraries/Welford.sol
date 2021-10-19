@@ -23,7 +23,7 @@ library Welford {
         int256 newValue,
         int256 curMean,
         int256 curDSQ
-    ) internal view returns (int256 mean, int256 dsq) {
+    ) internal pure returns (int256 mean, int256 dsq) {
         // Source https://nestedsoftware.com/2019/09/26/incremental-average-and-standard-deviation-with-sliding-window-470k.176143.html
         if (curCount == 1 && oldValue == 0) {
             // initialize when the first value is added
@@ -55,7 +55,7 @@ library Welford {
      */
     function variance(uint256 count, int256 dsq)
         internal
-        view
+        pure
         returns (uint256)
     {
         require(count > 0, "!count");
@@ -67,7 +67,7 @@ library Welford {
      * @param count is the length of the dataset
      * @param dsq is the variance * count
      */
-    function stdev(uint256 count, int256 dsq) internal view returns (uint256) {
+    function stdev(uint256 count, int256 dsq) internal pure returns (uint256) {
         return Math.sqrt(variance(count, dsq));
     }
 }

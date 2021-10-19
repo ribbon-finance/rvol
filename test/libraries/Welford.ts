@@ -39,12 +39,12 @@ describe("Welford", () => {
       await testWelford.update(-100, 14);
       assert.equal((await testWelford.currObv()).toString(), "1");
       assert.equal((await testWelford.mean()).toString(), BigNumber.from(-100));
-      assert.equal((await testWelford.m2()).toString(), BigNumber.from(0));
+      assert.equal((await testWelford.dsq()).toString(), BigNumber.from(0));
 
       await testWelford.update(-200, 14);
       assert.equal((await testWelford.currObv()).toString(), "2");
       assert.equal((await testWelford.mean()).toString(), BigNumber.from(-150));
-      assert.equal((await testWelford.m2()).toString(), BigNumber.from(5000));
+      assert.equal((await testWelford.dsq()).toString(), BigNumber.from(5000));
 
       assert.equal((await testWelford.stdev()).toString(), "50");
     });
@@ -62,10 +62,9 @@ describe("Welford", () => {
       }
 
       for (let i = 0; i < values.length; i++) {
-        console.log(values[i].toString());
         await testWelford.update(values[i], 14);
       }
-      const welfordStdev = (await testWelford.stdev()).toString();
+      const welfordStdev = await testWelford.stdev();
 
       // As the number of records increase, Welford's online algorithm's error rate will go down
       // At 30 records, the error rate is <2%

@@ -361,8 +361,8 @@ describe("OptionsPremiumPricer", () => {
         true
       );
 
-      assert.isAtMost(callGas.toNumber(), 52000);
-      assert.isAtMost(putGas.toNumber(), 70000);
+      assert.isAtMost(callGas.toNumber(), 54346);
+      assert.isAtMost(putGas.toNumber(), 71798);
       // console.log("getPremium call:", callGas.toNumber());
       // console.log("getPremium put:", putGas.toNumber());
     });
