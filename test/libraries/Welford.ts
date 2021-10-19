@@ -65,6 +65,7 @@ describe("Welford", () => {
         await testWelford.update(values[i], 14);
       }
       const welfordStdev = await testWelford.stdev();
+      const actualStdev = stdev(values);
 
       // As the number of records increase, Welford's online algorithm's error rate will go down
       // At 30 records, the error rate is <2%
@@ -73,6 +74,7 @@ describe("Welford", () => {
       //   0.02
       // );
 
+      assert.isAbove(actualStdev, welfordStdev);
       // stdev calculator: https://www.calculator.net/standard-deviation-calculator.html?numberinputs=2019000000%2C2018000000%2C+2017000000%2C+2016000000%2C+2015000000%2C+2014000000%2C+2013000000%2C2012000000%2C2011000000%2C+2010000000%2C+2009000000%2C+2008000000%2C+2007000000%2C+2006000000&ctype=p&x=61&y=20
       assert.equal(welfordStdev.toNumber(), 4031128);
     });

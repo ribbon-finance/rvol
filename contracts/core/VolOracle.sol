@@ -27,10 +27,8 @@ contract VolOracle is DSMath {
      * Storage
      */
     struct Accumulator {
-        // Stores log-return observations over window
-        int256[] observations;
         // Stores the index of next observation
-        uint8 currObv;
+        uint8 currentObservationIndex;
         // Timestamp of the last record
         uint32 lastTimestamp;
         // Smaller size because prices denominated in USDC, max 7.9e27
@@ -45,9 +43,8 @@ contract VolOracle is DSMath {
     /// @dev Stores the last oracle TWAP price for a pool
     mapping(address => uint256) public lastPrices;
 
-    /// @dev Stores whether we have backfilled weekly yet
-    // Saves on gas so we don't access accumulator from storage each time
-    mapping(address => bool) public hasWrapped;
+    // @dev Stores log-return observations over window
+    mapping(address => int256[]) public observations;
 
     /***
      * Events
@@ -56,7 +53,7 @@ contract VolOracle is DSMath {
     event Commit(
         uint32 commitTimestamp,
         int96 mean,
-        uint112 dsq,
+        uint120 dsq,
         uint256 newValue,
         address committer
     );
@@ -91,6 +88,8 @@ contract VolOracle is DSMath {
         uint256 _lastPrice = lastPrices[pool];
         uint256 periodReturn = _lastPrice > 0 ? wdiv(price, _lastPrice) : 0;
 
+        require(price > 0, "Price from twap is 0");
+
         // logReturn is in 10**18
         // we need to scale it down to 10**8
         int256 logReturn =
@@ -106,33 +105,33 @@ contract VolOracle is DSMath {
             "Committed"
         );
 
-        uint256 currObv = accum.currObv;
+        if (observations[pool].length == 0) {
+            observations[pool] = new int256[](windowSize);
+        }
+
+        uint256 currentObservationIndex = accum.currentObservationIndex;
 
         (int256 newMean, int256 newDSQ) =
             Welford.update(
-                !hasWrapped[pool] ? currObv + 1 : windowSize,
-                !hasWrapped[pool] ? 0 : accum.observations[currObv],
+                observations[pool][windowSize - 1] != 0
+                    ? windowSize
+                    : currentObservationIndex + 1,
+                observations[pool][currentObservationIndex],
                 logReturn,
                 accum.mean,
                 accum.dsq
             );
 
         require(newMean < type(int96).max, ">I96");
-        require(newDSQ < type(uint112).max, ">U112");
-
-        if (!hasWrapped[pool]) {
-            accum.observations.push(logReturn);
-            if (accum.observations.length == windowSize) {
-                hasWrapped[pool] = true;
-            }
-        } else {
-            accum.observations[currObv] = logReturn;
-        }
+        require(newDSQ < type(uint120).max, ">U120");
 
         accum.mean = int96(newMean);
         accum.dsq = uint112(newDSQ);
         accum.lastTimestamp = commitTimestamp;
-        accum.currObv = uint8((currObv + 1) % windowSize);
+        observations[pool][currentObservationIndex] = logReturn;
+        accum.currentObservationIndex = uint8(
+            (currentObservationIndex + 1) % windowSize
+        );
         lastPrices[pool] = price;
 
         emit Commit(
@@ -151,7 +150,9 @@ contract VolOracle is DSMath {
     function vol(address pool) public view returns (uint256 standardDeviation) {
         return
             Welford.stdev(
-                !hasWrapped[pool] ? accumulators[pool].currObv : windowSize,
+                observations[pool][windowSize - 1] != 0
+                    ? windowSize
+                    : accumulators[pool].currentObservationIndex,
                 accumulators[pool].dsq
             );
     }
@@ -168,7 +169,9 @@ contract VolOracle is DSMath {
         return
             Welford
                 .stdev(
-                !hasWrapped[pool] ? accumulators[pool].currObv : windowSize,
+                observations[pool][windowSize - 1] != 0
+                    ? windowSize
+                    : accumulators[pool].currentObservationIndex,
                 accumulators[pool]
                     .dsq
             )

@@ -111,7 +111,7 @@ describe("VolOracle", () => {
       // First time is more expensive
       const tx1 = await oracle.commit(ethusdcPool);
       const receipt1 = await tx1.wait();
-      assert.isAtMost(receipt1.gasUsed.toNumber(), 124559);
+      assert.isAtMost(receipt1.gasUsed.toNumber(), 156538);
 
       await time.increaseTo(topOfPeriod + PERIOD);
 

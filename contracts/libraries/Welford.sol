@@ -61,6 +61,7 @@ library Welford {
         returns (uint256)
     {
         require(count > 0, "!count");
+        require(dsq >= 0, "!dsq");
         return uint256(uint256(dsq) / count);
     }
 
