@@ -1,5 +1,6 @@
 import hre from "hardhat";
 import { Command } from "commander";
+import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 const program = new Command();
 program.version("0.0.1");
@@ -26,7 +27,7 @@ program.option(
 
 program.parse(process.argv);
 
-export default async function main() {
+export default async function main(hre: HardhatRuntimeEnvironment) {
   const [deployer] = await hre.ethers.getSigners();
   const network = hre.network.name;
 
