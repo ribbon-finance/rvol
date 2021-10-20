@@ -558,6 +558,46 @@ describe("OptionsPremiumPricer", () => {
     });
   });
 
+  describe("derivatives", () => {
+    it("reverts when one of the inputs are 0", async function () {
+      await expect(
+        testOptionsPremiumPricer.testDerivatives(
+          0,
+          BigNumber.from("1652735610000000000"),
+          BigNumber.from("241664000000"),
+          BigNumber.from("211664000000")
+        )
+      ).to.be.revertedWith("!sSQRT");
+
+      await expect(
+        testOptionsPremiumPricer.testDerivatives(
+          7,
+          BigNumber.from("0"),
+          BigNumber.from("241664000000"),
+          BigNumber.from("211664000000")
+        )
+      ).to.be.revertedWith("!sSQRT");
+
+      await expect(
+        testOptionsPremiumPricer.testDerivatives(
+          7,
+          BigNumber.from("1652735610000000000"),
+          BigNumber.from("0"),
+          BigNumber.from("211664000000")
+        )
+      ).to.be.revertedWith("!sp");
+
+      await expect(
+        testOptionsPremiumPricer.testDerivatives(
+          7,
+          BigNumber.from("241664000000"),
+          BigNumber.from("241664000000"),
+          BigNumber.from("0")
+        )
+      ).to.be.revertedWith("!st");
+    });
+  });
+
   const getTopOfPeriod = async () => {
     const latestTimestamp = (await provider.getBlock("latest")).timestamp;
     let topOfPeriod: number;

@@ -94,4 +94,13 @@ contract TestOptionsPremiumPricer is OptionsPremiumPricer {
             result = abi.decode(returnData, (uint256));
         }
     }
+
+    function testDerivatives(
+        uint256 t,
+        uint256 v,
+        uint256 sp,
+        uint256 st
+    ) external pure returns (uint256 d1, uint256 d2) {
+        return derivatives(t, v, sp, st);
+    }
 }

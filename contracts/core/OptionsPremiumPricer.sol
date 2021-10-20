@@ -250,13 +250,17 @@ contract OptionsPremiumPricer is DSMath {
         uint256 v,
         uint256 sp,
         uint256 st
-    ) private pure returns (uint256 d1, uint256 d2) {
+    ) internal pure returns (uint256 d1, uint256 d2) {
+        require(sp > 0, "!sp");
+        require(st > 0, "!st");
+
         uint256 sigma = ((v**2) / 2);
         uint256 sigmaB = 1e36;
 
         uint256 sig = (((1e18 * sigma) / sigmaB) * t) / 365;
 
         uint256 sSQRT = (v * Math.sqrt2((1e18 * t) / 365)) / 1e9;
+        require(sSQRT > 0, "!sSQRT");
 
         d1 = (1e18 * Math.ln((Math.FIXED_1 * sp) / st)) / Math.FIXED_1;
         d1 = ((d1 + sig) * 1e18) / sSQRT;

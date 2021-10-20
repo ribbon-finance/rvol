@@ -1,5 +1,8 @@
+import { task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
 import "hardhat-log-remover";
+import "@nomiclabs/hardhat-etherscan";
+import deployOptionsPremiumPricer from "./scripts/deploy-optionspremiumpricer";
 
 require("dotenv").config();
 
@@ -27,8 +30,24 @@ export default {
         blockNumber: 12529250,
       },
     },
+    mainnet: {
+      url: process.env.MAINNET_URI,
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+      },
+    },
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY,
   },
   mocha: {
     timeout: 500000,
   },
 };
+
+task("deploy-optionspremiumpricer", "Deploys Options Premium Pricer")
+  .addParam("pool", "Uniswap v3 pool")
+  .addParam("volatility", "Volatility oracle")
+  .addParam("underlying", "Underlying asset price oracle")
+  .addParam("stables", "Stablecoin oracle")
+  .setAction(deployOptionsPremiumPricer);
