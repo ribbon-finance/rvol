@@ -5,12 +5,12 @@ import {Welford} from "../libraries/Welford.sol";
 
 contract TestWelford {
     uint256 public count;
-    uint256 public mean;
+    int256 public mean;
     uint256 public m2;
 
-    function update(uint256 newValue) external {
-        (uint256 newCount, uint256 newMean, uint256 newM2) =
-            Welford.update(count, mean, m2, int256(newValue));
+    function update(int256 newValue) external {
+        (uint256 newCount, int256 newMean, uint256 newM2) =
+            Welford.update(count, mean, m2, newValue);
 
         count = newCount;
         mean = newMean;

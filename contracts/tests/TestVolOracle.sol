@@ -37,15 +37,15 @@ contract TestVolOracle is DSMath, VolOracle {
             "Committed"
         );
 
-        (uint256 newCount, uint256 newMean, uint256 newM2) =
+        (uint256 newCount, int256 newMean, uint256 newM2) =
             Welford.update(accum.count, accum.mean, accum.m2, logReturn);
 
         require(newCount < type(uint16).max, ">U16");
-        require(newMean < type(uint96).max, ">U96");
+        require(newMean < type(int96).max, ">U96");
         require(newM2 < type(uint112).max, ">U112");
 
         accum.count = uint16(newCount);
-        accum.mean = uint96(newMean);
+        accum.mean = int96(newMean);
         accum.m2 = uint112(newM2);
         accum.lastTimestamp = commitTimestamp;
         lastPrices[pool] = price;
@@ -53,7 +53,7 @@ contract TestVolOracle is DSMath, VolOracle {
         emit Commit(
             uint16(newCount),
             uint32(commitTimestamp),
-            uint96(newMean),
+            int96(newMean),
             uint112(newM2),
             price,
             msg.sender

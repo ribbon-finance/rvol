@@ -3,6 +3,7 @@ import { assert } from "chai";
 import { Contract } from "@ethersproject/contracts";
 import { BigNumber } from "@ethersproject/bignumber";
 import { parseUnits } from "@ethersproject/units";
+import * as time from "../helpers/time";
 
 const stdev = (values: BigNumber[]) => {
   let sum = BigNumber.from(0);
@@ -31,7 +32,27 @@ describe("Welford", () => {
     testWelford = await TestWelford.deploy();
   });
 
+  describe("update", () => {
+    time.revertToSnapshotAfterEach();
+
+    it("takes in negative values", async function () {
+      await testWelford.update(-100);
+      assert.equal((await testWelford.count()).toString(), "1");
+      assert.equal((await testWelford.mean()).toString(), BigNumber.from(-100));
+      assert.equal((await testWelford.m2()).toString(), BigNumber.from(0));
+
+      await testWelford.update(-200);
+      assert.equal((await testWelford.count()).toString(), "2");
+      assert.equal((await testWelford.mean()).toString(), BigNumber.from(-150));
+      assert.equal((await testWelford.m2()).toString(), BigNumber.from(5000));
+
+      assert.equal((await testWelford.stdev()).toString(), "50");
+    });
+  });
+
   describe("stdev", () => {
+    time.revertToSnapshotAfterEach();
+
     it("matches stdev", async function () {
       let values: BigNumber[] = [];
       const start = 2000;
