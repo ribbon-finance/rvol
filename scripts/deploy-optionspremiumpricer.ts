@@ -26,7 +26,7 @@ program.option(
 
 program.parse(process.argv);
 
-async function main() {
+export default async function main() {
   const [deployer] = await hre.ethers.getSigners();
   const network = hre.network.name;
 
