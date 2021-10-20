@@ -7,7 +7,7 @@ contract ManualVolOracle is AccessControl {
     /// @dev The identifier of the role which maintains other roles.
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN");
 
-    mapping(address => uint256) public annualizedVols;
+    mapping(address => uint256) private annualizedVols;
 
     /**
      * @notice Creates an volatility oracle for a pool
@@ -30,7 +30,7 @@ contract ManualVolOracle is AccessControl {
      * @notice Returns the standard deviation of the base currency in 10**8 i.e. 1*10**8 = 100%
      * @return standardDeviation is the standard deviation of the asset
      */
-    function vol(address pool) public view returns (uint256 standardDeviation) {
+    function vol(address) public pure returns (uint256 standardDeviation) {
         return 0;
     }
 
@@ -48,14 +48,15 @@ contract ManualVolOracle is AccessControl {
 
     /**
      * @notice Sets the annualized standard deviation of the base currency of the `pool`
-     * @param pool is the uniswap pool we want to set annualized volatility for
-     * @param annualizedVol is the annualized volatility with 10**8 decimals i.e. 1*10**8 = 100%
+     * @param _pool is the uniswap pool we want to set annualized volatility for
+     * @param _annualizedVol is the annualized volatility with 10**8 decimals i.e. 1*10**8 = 100%
      */
-    function setAnnualizedVol(address pool, uint256 annualizedVol)
+    function setAnnualizedVol(address _pool, uint256 _annualizedVol)
         external
         onlyAdmin
     {
-        require(annualizedVol > 0, "!annualizedVol");
-        annualizedVols[pool] = annualizedVol;
+        require(_annualizedVol > 50 * 10**6, "Cannot be less than 50%");
+        require(_annualizedVol < 400 * 10**6, "Cannot be more than 400%");
+        annualizedVols[_pool] = _annualizedVol;
     }
 }
