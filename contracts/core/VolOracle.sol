@@ -34,7 +34,7 @@ contract VolOracle is DSMath {
         // Smaller size because prices denominated in USDC, max 7.9e27
         int96 mean;
         // Stores the dsquared (variance * count)
-        uint112 dsq;
+        uint120 dsq;
     }
 
     /// @dev Stores the latest data that helps us compute the standard deviation of the seen dataset.
@@ -78,7 +78,15 @@ contract VolOracle is DSMath {
     }
 
     /**
-     * @notice Commits an oracle update
+     * @notice Initialized pool observation window
+     */
+    function initPool(address pool) external {
+        require(observations[pool].length == 0, "Pool initialized");
+        observations[pool] = new int256[](windowSize);
+    }
+
+    /**
+     * @notice Commits an oracle update. Must be called after pool initialized
      */
     function commit(address pool) external {
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
@@ -105,17 +113,13 @@ contract VolOracle is DSMath {
             "Committed"
         );
 
-        if (observations[pool].length == 0) {
-            observations[pool] = new int256[](windowSize);
-        }
+        require(observations[pool].length > 0, "!pool initialize");
 
         uint256 currentObservationIndex = accum.currentObservationIndex;
 
         (int256 newMean, int256 newDSQ) =
             Welford.update(
-                observations[pool][windowSize - 1] != 0
-                    ? windowSize
-                    : currentObservationIndex + 1,
+                observationCount(pool, true),
                 observations[pool][currentObservationIndex],
                 logReturn,
                 accum.mean,
@@ -126,7 +130,7 @@ contract VolOracle is DSMath {
         require(newDSQ < type(uint120).max, ">U120");
 
         accum.mean = int96(newMean);
-        accum.dsq = uint112(newDSQ);
+        accum.dsq = uint120(newDSQ);
         accum.lastTimestamp = commitTimestamp;
         observations[pool][currentObservationIndex] = logReturn;
         accum.currentObservationIndex = uint8(
@@ -137,7 +141,7 @@ contract VolOracle is DSMath {
         emit Commit(
             uint32(commitTimestamp),
             int96(newMean),
-            uint112(newDSQ),
+            uint120(newDSQ),
             price,
             msg.sender
         );
@@ -150,9 +154,7 @@ contract VolOracle is DSMath {
     function vol(address pool) public view returns (uint256 standardDeviation) {
         return
             Welford.stdev(
-                observations[pool][windowSize - 1] != 0
-                    ? windowSize
-                    : accumulators[pool].currentObservationIndex,
+                observationCount(pool, false),
                 accumulators[pool].dsq
             );
     }
@@ -168,13 +170,7 @@ contract VolOracle is DSMath {
     {
         return
             Welford
-                .stdev(
-                observations[pool][windowSize - 1] != 0
-                    ? windowSize
-                    : accumulators[pool].currentObservationIndex,
-                accumulators[pool]
-                    .dsq
-            )
+                .stdev(observationCount(pool, false), accumulators[pool].dsq)
                 .mul(annualizationConstant);
     }
 
@@ -285,5 +281,20 @@ contract VolOracle is DSMath {
             return (timestamp - rem, rem);
         }
         return (timestamp + period - rem, period - rem);
+    }
+
+    /**
+     * @notice Returns the current number of observations [0, windowSize]
+     * @return obvCount is the observation count
+     */
+    function observationCount(address pool, bool isInc)
+        internal
+        view
+        returns (uint256 obvCount)
+    {
+        uint256 size = windowSize; // cache for gas
+        obvCount = observations[pool][size - 1] != 0
+            ? size
+            : accumulators[pool].currentObservationIndex + (isInc ? 1 : 0);
     }
 }

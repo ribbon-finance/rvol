@@ -40,10 +40,30 @@ describe("VolOracle", () => {
     });
   });
 
+  describe("initPool", () => {
+    time.revertToSnapshotAfterEach();
+
+    it("initializes pool", async function () {
+      await expect(oracle.commit(ethusdcPool)).to.be.revertedWith(
+        "!pool initialize"
+      );
+      await oracle.initPool(ethusdcPool);
+      oracle.commit(ethusdcPool);
+    });
+
+    it("reverts when pool has already been initialized", async function () {
+      await oracle.initPool(ethusdcPool);
+      await expect(oracle.initPool(ethusdcPool)).to.be.revertedWith(
+        "Pool initialized"
+      );
+    });
+  });
+
   describe("commit", () => {
     time.revertToSnapshotAfterEach();
 
     it("commits the twap", async function () {
+      await oracle.initPool(ethusdcPool);
       const topOfPeriod = await getTopOfPeriod();
       await time.increaseTo(topOfPeriod);
       await oracle.commit(ethusdcPool);
@@ -62,6 +82,7 @@ describe("VolOracle", () => {
     });
 
     it("reverts when out of commit phase", async function () {
+      await oracle.initPool(ethusdcPool);
       const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
 
       await time.increaseTo(topOfPeriod - COMMIT_PHASE_DURATION - 10);
@@ -76,6 +97,7 @@ describe("VolOracle", () => {
     });
 
     it("reverts when there is an existing commit for period", async function () {
+      await oracle.initPool(ethusdcPool);
       const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
       await time.increaseTo(topOfPeriod);
 
@@ -94,7 +116,18 @@ describe("VolOracle", () => {
       await oracle.commit(ethusdcPool);
     });
 
+    it("reverts when pool has not been initialized", async function () {
+      const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
+      await time.increaseTo(topOfPeriod);
+
+      // Cannot commit immediately after
+      await expect(oracle.commit(ethusdcPool)).to.be.revertedWith(
+        "!pool initialize"
+      );
+    });
+
     it("commits when within commit phase", async function () {
+      await oracle.initPool(ethusdcPool);
       const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
       await time.increaseTo(topOfPeriod - COMMIT_PHASE_DURATION);
       await oracle.commit(ethusdcPool);
@@ -105,6 +138,7 @@ describe("VolOracle", () => {
     });
 
     it("fits gas budget", async function () {
+      await oracle.initPool(ethusdcPool);
       const latestTimestamp = (await provider.getBlock("latest")).timestamp;
       const topOfPeriod = latestTimestamp - (latestTimestamp % PERIOD);
 
@@ -134,6 +168,8 @@ describe("VolOracle", () => {
         BigNumber.from("2248393"),
         BigNumber.from("3068199"),
       ];
+
+      await mockOracle.initPool(ethusdcPool);
 
       for (let i = 0; i < values.length; i++) {
         await mockOracle.setPrice(values[i]);
@@ -166,6 +202,8 @@ describe("VolOracle", () => {
         BigNumber.from("2450000000"),
         BigNumber.from("2650000000"),
       ];
+
+      await mockOracle.initPool(ethusdcPool);
 
       for (let i = 0; i < values.length; i++) {
         await mockOracle.setPrice(values[i]);

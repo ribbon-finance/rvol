@@ -361,8 +361,8 @@ describe("OptionsPremiumPricer", () => {
         true
       );
 
-      assert.isAtMost(callGas.toNumber(), 56454);
-      assert.isAtMost(putGas.toNumber(), 73906);
+      assert.isAtMost(callGas.toNumber(), 56561);
+      assert.isAtMost(putGas.toNumber(), 74013);
       // console.log("getPremium call:", callGas.toNumber());
       // console.log("getPremium put:", putGas.toNumber());
     });
@@ -628,6 +628,8 @@ describe("OptionsPremiumPricer", () => {
       BigNumber.from("2250000000"),
       BigNumber.from("2650000000"),
     ];
+
+    await mockOracle.initPool(ethusdcPool);
 
     for (let i = 0; i < values.length; i++) {
       await mockOracle.setPrice(values[i]);
