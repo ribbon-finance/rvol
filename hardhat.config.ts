@@ -2,7 +2,6 @@ import { task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
 import "hardhat-log-remover";
 import "@nomiclabs/hardhat-etherscan";
-import deployOptionsPremiumPricer from "./scripts/deploy-optionspremiumpricer";
 
 require("dotenv").config();
 
@@ -44,10 +43,3 @@ export default {
     timeout: 500000,
   },
 };
-
-task("deploy-optionspremiumpricer", "Deploys Options Premium Pricer")
-  .addParam("pool", "Uniswap v3 pool")
-  .addParam("volatility", "Volatility oracle")
-  .addParam("underlying", "Underlying asset price oracle")
-  .addParam("stables", "Stablecoin oracle")
-  .setAction(deployOptionsPremiumPricer);
