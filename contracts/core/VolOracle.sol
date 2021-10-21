@@ -89,6 +89,8 @@ contract VolOracle is DSMath {
      * @notice Commits an oracle update. Must be called after pool initialized
      */
     function commit(address pool) external {
+        require(observations[pool].length > 0, "!pool initialize");
+
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
         require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
 
@@ -112,8 +114,6 @@ contract VolOracle is DSMath {
                 accum.lastTimestamp + period - commitPhaseDuration,
             "Committed"
         );
-
-        require(observations[pool].length > 0, "!pool initialize");
 
         uint256 currentObservationIndex = accum.currentObservationIndex;
 
@@ -285,6 +285,9 @@ contract VolOracle is DSMath {
 
     /**
      * @notice Returns the current number of observations [0, windowSize]
+     * @param pool is the address of the pool we want to count observations for
+     * @param isInc is whether we want to add 1 to the number of
+     * observations for mean purposes
      * @return obvCount is the observation count
      */
     function observationCount(address pool, bool isInc)

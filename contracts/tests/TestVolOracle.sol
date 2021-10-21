@@ -17,6 +17,8 @@ contract TestVolOracle is DSMath, VolOracle {
     {}
 
     function mockCommit(address pool) external {
+        require(observations[pool].length > 0, "!pool initialize");
+
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
         require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
 
@@ -38,8 +40,6 @@ contract TestVolOracle is DSMath, VolOracle {
                 accum.lastTimestamp + period - commitPhaseDuration,
             "Committed"
         );
-
-        require(observations[pool].length > 0, "!pool initialize");
 
         uint256 currentObservationIndex = accum.currentObservationIndex;
 
