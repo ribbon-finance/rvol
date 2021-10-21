@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { assert, expect } from "chai";
-import { Contract } from "@ethersproject/contracts";
+import { Contract } from "ethers";
 import moment from "moment-timezone";
 import * as time from "../helpers/time";
 import * as math from "../helpers/math";
@@ -21,6 +21,7 @@ describe("OptionsPremiumPricer", () => {
   let underlyingPriceShifted: BigNumber;
 
   const PERIOD = 43200; // 12 hours
+  const WINDOW_IN_DAYS = 7; // weekly vol data
   const WEEK = 604800; // 7 days
   const WAD = BigNumber.from(10).pow(18);
 
@@ -43,7 +44,7 @@ describe("OptionsPremiumPricer", () => {
       signer
     );
 
-    mockOracle = await TestVolOracle.deploy(PERIOD);
+    mockOracle = await TestVolOracle.deploy(PERIOD, WINDOW_IN_DAYS);
     optionsPremiumPricer = await OptionsPremiumPricer.deploy(
       ethusdcPool,
       mockOracle.address,
@@ -360,8 +361,8 @@ describe("OptionsPremiumPricer", () => {
         true
       );
 
-      assert.isAtMost(callGas.toNumber(), 52000);
-      assert.isAtMost(putGas.toNumber(), 70000);
+      assert.isAtMost(callGas.toNumber(), 56561);
+      assert.isAtMost(putGas.toNumber(), 74013);
       // console.log("getPremium call:", callGas.toNumber());
       // console.log("getPremium put:", putGas.toNumber());
     });
@@ -627,6 +628,8 @@ describe("OptionsPremiumPricer", () => {
       BigNumber.from("2250000000"),
       BigNumber.from("2650000000"),
     ];
+
+    await mockOracle.initPool(ethusdcPool);
 
     for (let i = 0; i < values.length; i++) {
       await mockOracle.setPrice(values[i]);

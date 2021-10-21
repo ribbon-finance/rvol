@@ -19,6 +19,7 @@ contract VolOracle is DSMath {
      * Immutables
      */
     uint32 public immutable period;
+    uint256 public immutable windowSize;
     uint256 public immutable annualizationConstant;
     uint256 internal constant commitPhaseDuration = 1800; // 30 minutes from every period
 
@@ -26,15 +27,14 @@ contract VolOracle is DSMath {
      * Storage
      */
     struct Accumulator {
-        // Max number of records: 2^16-1 = 65535.
-        // If we commit twice a day, we get to have a max of ~89 years.
-        uint16 count;
+        // Stores the index of next observation
+        uint8 currentObservationIndex;
         // Timestamp of the last record
         uint32 lastTimestamp;
         // Smaller size because prices denominated in USDC, max 7.9e27
         int96 mean;
-        // Stores the sum of squared errors
-        uint112 m2;
+        // Stores the dsquared (variance * count)
+        uint120 dsq;
     }
 
     /// @dev Stores the latest data that helps us compute the standard deviation of the seen dataset.
@@ -43,15 +43,17 @@ contract VolOracle is DSMath {
     /// @dev Stores the last oracle TWAP price for a pool
     mapping(address => uint256) public lastPrices;
 
+    // @dev Stores log-return observations over window
+    mapping(address => int256[]) public observations;
+
     /***
      * Events
      */
 
     event Commit(
-        uint16 count,
         uint32 commitTimestamp,
         int96 mean,
-        uint112 m2,
+        uint120 dsq,
         uint256 newValue,
         address committer
     );
@@ -59,11 +61,14 @@ contract VolOracle is DSMath {
     /**
      * @notice Creates an volatility oracle for a pool
      * @param _period is how often the oracle needs to be updated
+     * @param _windowInDays is how many days the window should be
      */
-    constructor(uint32 _period) {
+    constructor(uint32 _period, uint256 _windowInDays) {
         require(_period > 0, "!_period");
+        require(_windowInDays > 0, "!_windowInDays");
 
         period = _period;
+        windowSize = _windowInDays.mul(uint256(1 days).div(_period));
 
         // 31536000 seconds in a year
         // divided by the period duration
@@ -73,15 +78,27 @@ contract VolOracle is DSMath {
     }
 
     /**
-     * @notice Commits an oracle update
+     * @notice Initialized pool observation window
+     */
+    function initPool(address pool) external {
+        require(observations[pool].length == 0, "Pool initialized");
+        observations[pool] = new int256[](windowSize);
+    }
+
+    /**
+     * @notice Commits an oracle update. Must be called after pool initialized
      */
     function commit(address pool) external {
+        require(observations[pool].length > 0, "!pool initialize");
+
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
         require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
 
         uint256 price = twap(pool);
         uint256 _lastPrice = lastPrices[pool];
         uint256 periodReturn = _lastPrice > 0 ? wdiv(price, _lastPrice) : 0;
+
+        require(price > 0, "Price from twap is 0");
 
         // logReturn is in 10**18
         // we need to scale it down to 10**8
@@ -98,24 +115,33 @@ contract VolOracle is DSMath {
             "Committed"
         );
 
-        (uint256 newCount, int256 newMean, uint256 newM2) =
-            Welford.update(accum.count, accum.mean, accum.m2, logReturn);
+        uint256 currentObservationIndex = accum.currentObservationIndex;
 
-        require(newCount < type(uint16).max, ">U16");
+        (int256 newMean, int256 newDSQ) =
+            Welford.update(
+                observationCount(pool, true),
+                observations[pool][currentObservationIndex],
+                logReturn,
+                accum.mean,
+                accum.dsq
+            );
+
         require(newMean < type(int96).max, ">I96");
-        require(newM2 < type(uint112).max, ">U112");
+        require(newDSQ < type(uint120).max, ">U120");
 
-        accum.count = uint16(newCount);
         accum.mean = int96(newMean);
-        accum.m2 = uint112(newM2);
+        accum.dsq = uint120(newDSQ);
         accum.lastTimestamp = commitTimestamp;
+        observations[pool][currentObservationIndex] = logReturn;
+        accum.currentObservationIndex = uint8(
+            (currentObservationIndex + 1) % windowSize
+        );
         lastPrices[pool] = price;
 
         emit Commit(
-            uint16(newCount),
             uint32(commitTimestamp),
             int96(newMean),
-            uint112(newM2),
+            uint120(newDSQ),
             price,
             msg.sender
         );
@@ -126,7 +152,11 @@ contract VolOracle is DSMath {
      * @return standardDeviation is the standard deviation of the asset
      */
     function vol(address pool) public view returns (uint256 standardDeviation) {
-        return Welford.stdev(accumulators[pool].count, accumulators[pool].m2);
+        return
+            Welford.stdev(
+                observationCount(pool, false),
+                accumulators[pool].dsq
+            );
     }
 
     /**
@@ -139,9 +169,9 @@ contract VolOracle is DSMath {
         returns (uint256 annualStdev)
     {
         return
-            Welford.stdev(accumulators[pool].count, accumulators[pool].m2).mul(
-                annualizationConstant
-            );
+            Welford
+                .stdev(observationCount(pool, false), accumulators[pool].dsq)
+                .mul(annualizationConstant);
     }
 
     /**
@@ -251,5 +281,23 @@ contract VolOracle is DSMath {
             return (timestamp - rem, rem);
         }
         return (timestamp + period - rem, period - rem);
+    }
+
+    /**
+     * @notice Returns the current number of observations [0, windowSize]
+     * @param pool is the address of the pool we want to count observations for
+     * @param isInc is whether we want to add 1 to the number of
+     * observations for mean purposes
+     * @return obvCount is the observation count
+     */
+    function observationCount(address pool, bool isInc)
+        internal
+        view
+        returns (uint256 obvCount)
+    {
+        uint256 size = windowSize; // cache for gas
+        obvCount = observations[pool][size - 1] != 0
+            ? size
+            : accumulators[pool].currentObservationIndex + (isInc ? 1 : 0);
     }
 }

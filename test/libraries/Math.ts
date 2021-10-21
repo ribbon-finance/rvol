@@ -1,7 +1,6 @@
 import { ethers } from "hardhat";
 import { assert } from "chai";
-import { Contract } from "@ethersproject/contracts";
-import { BigNumber } from "ethers";
+import { Contract, BigNumber } from "ethers";
 import { pricesToReturns } from "../helpers/math";
 
 describe("Math", () => {

@@ -4,7 +4,7 @@ import { Contract } from "@ethersproject/contracts";
 import moment from "moment-timezone";
 import * as time from "../helpers/time";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BigNumber } from "ethers";
+import { BigNumber } from "@ethersproject/bignumber";
 
 const { getContractFactory } = ethers;
 

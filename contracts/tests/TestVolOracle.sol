@@ -12,9 +12,13 @@ contract TestVolOracle is DSMath, VolOracle {
     using SafeMath for uint256;
     uint256 private _price;
 
-    constructor(uint32 _period) VolOracle(_period) {}
+    constructor(uint32 _period, uint256 _windowInDays)
+        VolOracle(_period, _windowInDays)
+    {}
 
     function mockCommit(address pool) external {
+        require(observations[pool].length > 0, "!pool initialize");
+
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
         require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
 
@@ -37,24 +41,33 @@ contract TestVolOracle is DSMath, VolOracle {
             "Committed"
         );
 
-        (uint256 newCount, int256 newMean, uint256 newM2) =
-            Welford.update(accum.count, accum.mean, accum.m2, logReturn);
+        uint256 currentObservationIndex = accum.currentObservationIndex;
 
-        require(newCount < type(uint16).max, ">U16");
-        require(newMean < type(int96).max, ">U96");
-        require(newM2 < type(uint112).max, ">U112");
+        (int256 newMean, int256 newDSQ) =
+            Welford.update(
+                observationCount(pool, true),
+                observations[pool][currentObservationIndex],
+                logReturn,
+                accum.mean,
+                accum.dsq
+            );
 
-        accum.count = uint16(newCount);
+        require(newMean < type(int96).max, ">I96");
+        require(newDSQ < type(uint120).max, ">U120");
+
         accum.mean = int96(newMean);
-        accum.m2 = uint112(newM2);
+        accum.dsq = uint120(newDSQ);
         accum.lastTimestamp = commitTimestamp;
+        observations[pool][currentObservationIndex] = logReturn;
+        accum.currentObservationIndex = uint8(
+            (currentObservationIndex + 1) % windowSize
+        );
         lastPrices[pool] = price;
 
         emit Commit(
-            uint16(newCount),
             uint32(commitTimestamp),
             int96(newMean),
-            uint112(newM2),
+            uint120(newDSQ),
             price,
             msg.sender
         );
