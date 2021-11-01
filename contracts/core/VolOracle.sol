@@ -23,6 +23,12 @@ contract VolOracle is DSMath {
     uint256 public immutable annualizationConstant;
     uint256 internal constant commitPhaseDuration = 1800; // 30 minutes from every period
 
+    /// @notice ETH/USDC pool on Uniswap used to derive USDC price of asset
+    address public immutable ethUsdcPool;
+
+    /// @notice USDC address used to decide if we should check the ETH/USDC price
+    address public immutable USDC;
+
     /**
      * Storage
      */
@@ -63,7 +69,7 @@ contract VolOracle is DSMath {
      * @param _period is how often the oracle needs to be updated
      * @param _windowInDays is how many days the window should be
      */
-    constructor(uint32 _period, uint256 _windowInDays) {
+    constructor(uint32 _period, uint256 _windowInDays, bool _usesETHPool, address _ethUsdcPool) {
         require(_period > 0, "!_period");
         require(_windowInDays > 0, "!_windowInDays");
 
@@ -75,6 +81,9 @@ contract VolOracle is DSMath {
         // For e.g. if period = 1 day = 86400 seconds
         // It would be 31536000/86400 = 365 days.
         annualizationConstant = Math.sqrt(uint256(31536000).div(_period));
+
+        usesETHPool = _usesETHPool;
+        ethUsdcPool = _ethUsdcPool;
     }
 
     /**
@@ -94,7 +103,7 @@ contract VolOracle is DSMath {
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
         require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
 
-        uint256 price = twap(pool);
+        uint256 price = assetPriceInUSDC();
         uint256 _lastPrice = lastPrices[pool];
         uint256 periodReturn = _lastPrice > 0 ? wdiv(price, _lastPrice) : 0;
 
@@ -175,6 +184,14 @@ contract VolOracle is DSMath {
     }
 
     /**
+     * @notice Returns the TWAP for observation period in USDC terms
+     */
+    function assetPriceInUSDC() public view returns (uint256 price) {
+        // twap(ethUsdcPool);
+        return ;
+    }
+
+    /**
      * @notice Returns the TWAP for the entire Uniswap observation period
      * @return price is the TWAP quoted in quote currency
      */
@@ -200,7 +217,7 @@ contract VolOracle is DSMath {
 
         // Get the price of a unit of asset
         // For ETH, it would be 1 ether (10**18)
-        uint256 baseCurrencyDecimals = IERC20Detailed(token0).decimals();
+        uint256 baseCurrencyDecimals = _lookupDecimals(token0);
         uint128 quoteAmount = uint128(1 * 10**baseCurrencyDecimals);
 
         return
@@ -299,5 +316,24 @@ contract VolOracle is DSMath {
         obvCount = observations[pool][size - 1] != 0
             ? size
             : accumulators[pool].currentObservationIndex + (isInc ? 1 : 0);
+    }
+
+    /**
+     * @notice Convenience function to avoid .decimal lookups, but falls back if not in
+     * lookup table
+     * @param asset for the decimals to lookup for
+     */
+    function _lookupDecimals(address asset) internal view {
+        // WETH
+        if (asset == 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2) {
+            return 18;
+        // WBTC
+        } else if (asset == 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599) {
+            return 8;
+        // USDC
+        } else if (asset == 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) {
+            return 6;
+        }
+        return IERC20Detailed(asset).decimals();
     }
 }
