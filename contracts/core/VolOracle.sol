@@ -241,8 +241,8 @@ contract VolOracle is DSMath {
     /**
      * @notice Returns the TWAP for the entire Uniswap observation period
      * @param pool is the Uniswap v3 pool
-     * @param token0 is the token0 of the v3 pool
-     * @param token1 is the token1 of the v3 pool
+     * @param token0 is the token0 of the v3 pool, saves gas by passing it in
+     * @param token1 is the token1 of the v3 pool, saves gas by passing it in
      * @param quoteWithTokenIndex is the either 0 or 1
      * @return price is the TWAP quoted in quote currency
      */
@@ -382,7 +382,7 @@ contract VolOracle is DSMath {
 
     /**
      * @notice Convenience function to avoid .decimal lookups, but falls back if not in
-     * lookup table
+     * lookup table. For non-mainnet it will just fallback on looking up via decimals()
      * @param asset for the decimals to lookup for
      * @return the number of decimals
      */
