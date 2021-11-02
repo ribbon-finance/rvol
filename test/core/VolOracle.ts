@@ -5,6 +5,7 @@ import moment from "moment-timezone";
 import * as time from "../helpers/time";
 import { BigNumber } from "@ethersproject/bignumber";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { formatEther } from "ethers/lib/utils";
 
 const { provider, getContractFactory } = ethers;
 
@@ -13,16 +14,22 @@ moment.tz.setDefault("UTC");
 const PERIOD = 86400 / 2; // 12 hours
 const WINDOW_IN_DAYS = 7; // weekly vol data
 const COMMIT_PHASE_DURATION = 1800; // 30 mins
+const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const ETH_USDC_POOL = "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8";
 
 describe("VolOracle", () => {
   // const wbtcusdcPool = "0x99ac8cA7087fA4A2A1FB6357269965A2014ABc35";
 
+  // behavesLikeVolOracle({
+  //   poolAddress: ETH_USDC_POOL,
+  // });
+
   behavesLikeVolOracle({
-    poolAddress: ETH_USDC_POOL,
+    poolAddress: "0x5aB53EE1d50eeF2C1DD3d5402789cd27bB52c1bB",
   });
 
-  behavesLikeMockOracle();
+  // behavesLikeMockOracle();
 });
 
 function behavesLikeVolOracle({ poolAddress }: { poolAddress: string }) {
@@ -32,133 +39,146 @@ function behavesLikeVolOracle({ poolAddress }: { poolAddress: string }) {
   before(async function () {
     [signer] = await ethers.getSigners();
     const VolOracle = await getContractFactory("VolOracle", signer);
-    oracle = await VolOracle.deploy(PERIOD, WINDOW_IN_DAYS);
+    oracle = await VolOracle.deploy(
+      PERIOD,
+      WINDOW_IN_DAYS,
+      WETH,
+      USDC,
+      ETH_USDC_POOL
+    );
   });
 
-  describe("twap", () => {
-    it("gets the TWAP for a period", async function () {
-      assert.equal(
-        (await oracle.twap(poolAddress)).toString(),
-        "411907019541423"
-      );
-    });
-  });
-
-  describe("initPool", () => {
-    time.revertToSnapshotAfterEach();
-
-    it("initializes pool", async function () {
-      await expect(oracle.commit(poolAddress)).to.be.revertedWith(
-        "!pool initialize"
-      );
-      await oracle.initPool(poolAddress);
-      oracle.commit(poolAddress);
-    });
-
-    it("reverts when pool has already been initialized", async function () {
-      await oracle.initPool(poolAddress);
-      await expect(oracle.initPool(poolAddress)).to.be.revertedWith(
-        "Pool initialized"
-      );
+  describe("assetPriceInUSDC", () => {
+    it("gets the asset price in USDC", async () => {
+      const price = await oracle.assetPriceInUSDC(poolAddress);
+      console.log(formatEther(price.toString()));
     });
   });
 
-  describe("commit", () => {
-    time.revertToSnapshotAfterEach();
+  // describe("twap", () => {
+  //   it("gets the TWAP for a period", async function () {
+  //     assert.equal(
+  //       (await oracle.twap(poolAddress)).toString(),
+  //       "411907019541423"
+  //     );
+  //   });
+  // });
 
-    it("commits the twap", async function () {
-      await oracle.initPool(poolAddress);
-      const topOfPeriod = await getTopOfPeriod();
-      await time.increaseTo(topOfPeriod);
-      await oracle.commit(poolAddress);
+  // describe("initPool", () => {
+  //   time.revertToSnapshotAfterEach();
 
-      const {
-        lastTimestamp: timestamp1,
-        mean: mean1,
-        dsq: dsq1,
-      } = await oracle.accumulators(poolAddress);
-      assert.equal(timestamp1, topOfPeriod);
-      assert.equal(mean1.toNumber(), 0);
-      assert.equal(dsq1.toNumber(), 0);
+  //   it("initializes pool", async function () {
+  //     await expect(oracle.commit(poolAddress)).to.be.revertedWith(
+  //       "!pool initialize"
+  //     );
+  //     await oracle.initPool(poolAddress);
+  //     oracle.commit(poolAddress);
+  //   });
 
-      let stdev = await oracle.vol(poolAddress);
-      assert.equal(stdev.toNumber(), 0);
-    });
+  //   it("reverts when pool has already been initialized", async function () {
+  //     await oracle.initPool(poolAddress);
+  //     await expect(oracle.initPool(poolAddress)).to.be.revertedWith(
+  //       "Pool initialized"
+  //     );
+  //   });
+  // });
 
-    it("reverts when out of commit phase", async function () {
-      await oracle.initPool(poolAddress);
-      const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
+  // describe("commit", () => {
+  //   time.revertToSnapshotAfterEach();
 
-      await time.increaseTo(topOfPeriod - COMMIT_PHASE_DURATION - 10);
-      await expect(oracle.commit(poolAddress)).to.be.revertedWith(
-        "Not commit phase"
-      );
+  //   it("commits the twap", async function () {
+  //     await oracle.initPool(poolAddress);
+  //     const topOfPeriod = await getTopOfPeriod();
+  //     await time.increaseTo(topOfPeriod);
+  //     await oracle.commit(poolAddress);
 
-      await time.increaseTo(topOfPeriod + COMMIT_PHASE_DURATION + 10);
-      await expect(oracle.commit(poolAddress)).to.be.revertedWith(
-        "Not commit phase"
-      );
-    });
+  //     const {
+  //       lastTimestamp: timestamp1,
+  //       mean: mean1,
+  //       dsq: dsq1,
+  //     } = await oracle.accumulators(poolAddress);
+  //     assert.equal(timestamp1, topOfPeriod);
+  //     assert.equal(mean1.toNumber(), 0);
+  //     assert.equal(dsq1.toNumber(), 0);
 
-    it("reverts when there is an existing commit for period", async function () {
-      await oracle.initPool(poolAddress);
-      const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
-      await time.increaseTo(topOfPeriod);
+  //     let stdev = await oracle.vol(poolAddress);
+  //     assert.equal(stdev.toNumber(), 0);
+  //   });
 
-      await oracle.commit(poolAddress);
+  //   it("reverts when out of commit phase", async function () {
+  //     await oracle.initPool(poolAddress);
+  //     const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
 
-      // Cannot commit immediately after
-      await expect(oracle.commit(poolAddress)).to.be.revertedWith("Committed");
+  //     await time.increaseTo(topOfPeriod - COMMIT_PHASE_DURATION - 10);
+  //     await expect(oracle.commit(poolAddress)).to.be.revertedWith(
+  //       "Not commit phase"
+  //     );
 
-      // Cannot commit before commit phase begins
-      const beforePeriod = topOfPeriod + 100;
-      await time.increaseTo(beforePeriod);
-      await expect(oracle.commit(poolAddress)).to.be.revertedWith("Committed");
+  //     await time.increaseTo(topOfPeriod + COMMIT_PHASE_DURATION + 10);
+  //     await expect(oracle.commit(poolAddress)).to.be.revertedWith(
+  //       "Not commit phase"
+  //     );
+  //   });
 
-      const nextPeriod = topOfPeriod + PERIOD - COMMIT_PHASE_DURATION;
-      await time.increaseTo(nextPeriod);
-      await oracle.commit(poolAddress);
-    });
+  //   it("reverts when there is an existing commit for period", async function () {
+  //     await oracle.initPool(poolAddress);
+  //     const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
+  //     await time.increaseTo(topOfPeriod);
 
-    it("reverts when pool has not been initialized", async function () {
-      const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
-      await time.increaseTo(topOfPeriod);
+  //     await oracle.commit(poolAddress);
 
-      // Cannot commit immediately after
-      await expect(oracle.commit(poolAddress)).to.be.revertedWith(
-        "!pool initialize"
-      );
-    });
+  //     // Cannot commit immediately after
+  //     await expect(oracle.commit(poolAddress)).to.be.revertedWith("Committed");
 
-    it("commits when within commit phase", async function () {
-      await oracle.initPool(poolAddress);
-      const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
-      await time.increaseTo(topOfPeriod - COMMIT_PHASE_DURATION);
-      await oracle.commit(poolAddress);
+  //     // Cannot commit before commit phase begins
+  //     const beforePeriod = topOfPeriod + 100;
+  //     await time.increaseTo(beforePeriod);
+  //     await expect(oracle.commit(poolAddress)).to.be.revertedWith("Committed");
 
-      const nextTopOfPeriod = (await getTopOfPeriod()) + PERIOD;
-      await time.increaseTo(nextTopOfPeriod + COMMIT_PHASE_DURATION);
-      await oracle.commit(poolAddress);
-    });
+  //     const nextPeriod = topOfPeriod + PERIOD - COMMIT_PHASE_DURATION;
+  //     await time.increaseTo(nextPeriod);
+  //     await oracle.commit(poolAddress);
+  //   });
 
-    it("fits gas budget", async function () {
-      await oracle.initPool(poolAddress);
-      const latestTimestamp = (await provider.getBlock("latest")).timestamp;
-      const topOfPeriod = latestTimestamp - (latestTimestamp % PERIOD);
+  //   it("reverts when pool has not been initialized", async function () {
+  //     const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
+  //     await time.increaseTo(topOfPeriod);
 
-      // First time is more expensive
-      const tx1 = await oracle.commit(poolAddress);
-      const receipt1 = await tx1.wait();
-      assert.isAtMost(receipt1.gasUsed.toNumber(), 156538);
+  //     // Cannot commit immediately after
+  //     await expect(oracle.commit(poolAddress)).to.be.revertedWith(
+  //       "!pool initialize"
+  //     );
+  //   });
 
-      await time.increaseTo(topOfPeriod + PERIOD);
+  //   it("commits when within commit phase", async function () {
+  //     await oracle.initPool(poolAddress);
+  //     const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
+  //     await time.increaseTo(topOfPeriod - COMMIT_PHASE_DURATION);
+  //     await oracle.commit(poolAddress);
 
-      // Second time is cheaper
-      const tx2 = await oracle.commit(poolAddress);
-      const receipt2 = await tx2.wait();
-      assert.isAtMost(receipt2.gasUsed.toNumber(), 72136);
-    });
-  });
+  //     const nextTopOfPeriod = (await getTopOfPeriod()) + PERIOD;
+  //     await time.increaseTo(nextTopOfPeriod + COMMIT_PHASE_DURATION);
+  //     await oracle.commit(poolAddress);
+  //   });
+
+  //   it("fits gas budget", async function () {
+  //     await oracle.initPool(poolAddress);
+  //     const latestTimestamp = (await provider.getBlock("latest")).timestamp;
+  //     const topOfPeriod = latestTimestamp - (latestTimestamp % PERIOD);
+
+  //     // First time is more expensive
+  //     const tx1 = await oracle.commit(poolAddress);
+  //     const receipt1 = await tx1.wait();
+  //     assert.isAtMost(receipt1.gasUsed.toNumber(), 156538);
+
+  //     await time.increaseTo(topOfPeriod + PERIOD);
+
+  //     // Second time is cheaper
+  //     const tx2 = await oracle.commit(poolAddress);
+  //     const receipt2 = await tx2.wait();
+  //     assert.isAtMost(receipt2.gasUsed.toNumber(), 72136);
+  //   });
+  // });
 }
 
 function behavesLikeMockOracle() {

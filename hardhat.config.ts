@@ -26,7 +26,7 @@ export default {
       forking: {
         url: process.env.TEST_URI,
         gasLimit: 8e6,
-        blockNumber: 12529250,
+        blockNumber: 13537263,
       },
     },
     mainnet: {

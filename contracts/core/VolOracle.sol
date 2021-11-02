@@ -11,6 +11,7 @@ import {Welford} from "../libraries/Welford.sol";
 import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
 import {Math} from "../libraries/Math.sol";
 import {PRBMathSD59x18} from "../libraries/PRBMathSD59x18.sol";
+import "hardhat/console.sol";
 
 contract VolOracle is DSMath {
     using SafeMath for uint256;
@@ -107,7 +108,7 @@ contract VolOracle is DSMath {
     /**
      * @notice Commits an oracle update. Must be called after pool initialized
      */
-    function commit(address pool) external {
+    function commit(address pool) public {
         require(observations[pool].length > 0, "!pool initialize");
 
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
@@ -164,6 +165,16 @@ contract VolOracle is DSMath {
             price,
             msg.sender
         );
+    }
+
+    /**
+     * @notice Convenience function to call commit() on multiple pools
+     * @param pools is the array of pool addresses. The pools have to be initialized beforehand.
+     */
+    function multiCommit(address[] calldata pools) external {
+        for (uint256 i = 0; i < pools.length; i++) {
+            commit(pools[i]);
+        }
     }
 
     /**
@@ -225,7 +236,10 @@ contract VolOracle is DSMath {
 
         // USDC > WETH, so USDC is token0 while WETH is token1
         uint256 ethPriceInUSDC = _twap(ethUsdcPool, USDC, WETH, 0); // Using USDC as the quote token
-        return ethAmount.mul(ethPriceInUSDC);
+
+        // The returned value is 10**18 * 10**6 = 10**24, so we need to get back to 10**18
+        // by dividing 10**6
+        return ethAmount.mul(ethPriceInUSDC).div(10**6);
     }
 
     /**
