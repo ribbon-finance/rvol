@@ -106,7 +106,7 @@ contract VolOracle is DSMath {
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
         require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
 
-        uint256 price = v3Oracle.twapETHPoolForUSDCPrice(pool);
+        uint256 price = v3Oracle.twapETHPoolForUSDCPrice(pool, twapDuration);
         uint256 _lastPrice = lastPrices[pool];
         uint256 periodReturn = _lastPrice > 0 ? wdiv(price, _lastPrice) : 0;
 
