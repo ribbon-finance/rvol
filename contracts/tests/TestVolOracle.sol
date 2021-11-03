@@ -15,10 +15,9 @@ contract TestVolOracle is DSMath, VolOracle {
     constructor(
         uint32 _period,
         uint256 _windowInDays,
-        address _weth,
-        address _usdc,
-        address _ethUsdcPool
-    ) VolOracle(_period, _windowInDays, _weth, _usdc, _ethUsdcPool) {}
+        uint256 _twapDuration,
+        address _v3Oracle
+    ) VolOracle(_period, _windowInDays, _twapDuration, _v3Oracle) {}
 
     function mockCommit(address pool) external {
         require(observations[pool].length > 0, "!pool initialize");

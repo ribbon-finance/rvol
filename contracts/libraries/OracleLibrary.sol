@@ -4,37 +4,49 @@ pragma solidity >=0.5.0 <0.8.0;
 import "@uniswap/v3-core/contracts/libraries/FullMath.sol";
 import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import "@uniswap/v3-core/contracts/libraries/LowGasSafeMath.sol";
-import "@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol";
 
 /// @title Oracle library
 /// @notice Provides functions to integrate with V3 pool oracle
 /// Copy pasted from https://github.com/Uniswap/uniswap-v3-periphery/blob/main/contracts/libraries/OracleLibrary.sol
 library OracleLibrary {
-    /// @notice Fetches time-weighted average tick using Uniswap V3 oracle
-    /// @param pool Address of Uniswap V3 pool that we want to observe
-    /// @param period Number of seconds in the past to start calculating time-weighted average
-    /// @return timeWeightedAverageTick The time-weighted average tick
-    function consult(address pool, uint32 period)
+    /// @notice Calculates time-weighted means of tick and liquidity for a given Uniswap V3 pool
+    /// @param pool Address of the pool that we want to observe
+    /// @param secondsAgo Number of seconds in the past from which to calculate the time-weighted means
+    /// @return arithmeticMeanTick The arithmetic mean tick from (block.timestamp - secondsAgo) to block.timestamp
+    /// @return harmonicMeanLiquidity The harmonic mean liquidity from (block.timestamp - secondsAgo) to block.timestamp
+    function consult(address pool, uint32 secondsAgo)
         internal
         view
-        returns (int24 timeWeightedAverageTick)
+        returns (int24 arithmeticMeanTick, uint128 harmonicMeanLiquidity)
     {
-        require(period != 0, "BP");
+        require(secondsAgo != 0, "BP");
 
-        uint32[] memory secondAgos = new uint32[](2);
-        secondAgos[0] = period;
-        secondAgos[1] = 0;
+        uint32[] memory secondsAgos = new uint32[](2);
+        secondsAgos[0] = secondsAgo;
+        secondsAgos[1] = 0;
 
-        (int56[] memory tickCumulatives, ) =
-            IUniswapV3Pool(pool).observe(secondAgos);
+        (
+            int56[] memory tickCumulatives,
+            uint160[] memory secondsPerLiquidityCumulativeX128s
+        ) = IUniswapV3Pool(pool).observe(secondsAgos);
+
         int56 tickCumulativesDelta = tickCumulatives[1] - tickCumulatives[0];
+        uint160 secondsPerLiquidityCumulativesDelta = secondsPerLiquidityCumulativeX128s[
+                1
+            ] - secondsPerLiquidityCumulativeX128s[0];
 
-        timeWeightedAverageTick = int24(tickCumulativesDelta / period);
-
+        arithmeticMeanTick = int24(tickCumulativesDelta / secondsAgo);
         // Always round to negative infinity
-        if (tickCumulativesDelta < 0 && (tickCumulativesDelta % period != 0))
-            timeWeightedAverageTick--;
+        if (
+            tickCumulativesDelta < 0 && (tickCumulativesDelta % secondsAgo != 0)
+        ) arithmeticMeanTick--;
+
+        // We are multiplying here instead of shifting to ensure that harmonicMeanLiquidity doesn't overflow uint128
+        uint192 secondsAgoX160 = uint192(secondsAgo) * type(uint160).max;
+        harmonicMeanLiquidity = uint128(
+            secondsAgoX160 /
+                (uint192(secondsPerLiquidityCumulativesDelta) << 32)
+        );
     }
 
     /// @notice Given a tick and a token amount, calculates the amount of token received in exchange
@@ -58,8 +70,11 @@ library OracleLibrary {
                 ? FullMath.mulDiv(ratioX192, baseAmount, 1 << 192)
                 : FullMath.mulDiv(1 << 192, baseAmount, ratioX192);
         } else {
-            uint256 ratioX128 =
-                FullMath.mulDiv(sqrtRatioX96, sqrtRatioX96, 1 << 64);
+            uint256 ratioX128 = FullMath.mulDiv(
+                sqrtRatioX96,
+                sqrtRatioX96,
+                1 << 64
+            );
             quoteAmount = baseToken < quoteToken
                 ? FullMath.mulDiv(ratioX128, baseAmount, 1 << 128)
                 : FullMath.mulDiv(1 << 128, baseAmount, ratioX128);
