@@ -4,6 +4,9 @@ pragma solidity 0.7.3;
 import {
     IUniswapV3Pool
 } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import {
+    IUniswapV2Pair
+} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import {DSMath} from "../libraries/DSMath.sol";
 import {OracleLibrary} from "../libraries/OracleLibrary.sol";
@@ -94,7 +97,7 @@ contract VolOracle is DSMath {
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
         require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
 
-        uint256 price = twap(pool);
+        uint256 price = getTokenPrice(pool);
         uint256 _lastPrice = lastPrices[pool];
         uint256 periodReturn = _lastPrice > 0 ? wdiv(price, _lastPrice) : 0;
 
@@ -172,6 +175,14 @@ contract VolOracle is DSMath {
             Welford
                 .stdev(observationCount(pool, false), accumulators[pool].dsq)
                 .mul(annualizationConstant);
+    }
+
+    function getTokenPrice(address pairAddress) public view returns(uint) {
+        IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
+        IERC20Detailed token1 = IERC20Detailed(pair.token1());
+        (uint reserve0, uint reserve1,) = pair.getReserves();
+        uint res0 = reserve0 * (10**token1.decimals());
+        return(res0 / reserve1);
     }
 
     /**

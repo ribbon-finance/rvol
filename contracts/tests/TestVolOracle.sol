@@ -20,7 +20,7 @@ contract TestVolOracle is DSMath, VolOracle {
         require(observations[pool].length > 0, "!pool initialize");
 
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
-        require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
+        // require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
 
         uint256 price = mockTwap();
         uint256 _lastPrice = lastPrices[pool];
