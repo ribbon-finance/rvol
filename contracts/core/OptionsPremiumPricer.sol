@@ -77,7 +77,7 @@ contract OptionsPremiumPricer is DSMath {
         );
 
         uint256 spotPrice = priceOracle.latestAnswer();
-        uint256 stablePrice = stablesOracle.latestAnswer();
+        // uint256 stablePrice = stablesOracle.latestAnswer();
 
         (uint256 sp, uint256 v, uint256 t) =
             blackScholesParams(spotPrice, expiryTimestamp);
@@ -94,7 +94,7 @@ contract OptionsPremiumPricer is DSMath {
                 );
 
         uint256 assetPrice = inStable
-            ? stablePrice
+            ? stablesOracle.latestAnswer()
             : spotPrice;
 
         // Make option premium denominated in the underlying
