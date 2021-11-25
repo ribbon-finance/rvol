@@ -93,9 +93,8 @@ contract OptionsPremiumPricer is DSMath {
                     )
                 );
 
-        uint256 assetPrice = inStable
-            ? stablesOracle.latestAnswer()
-            : spotPrice;
+        uint256 assetPrice =
+            inStable ? stablesOracle.latestAnswer() : spotPrice;
 
         // Make option premium denominated in the underlying
         // asset for call vaults and USDC for put vaults

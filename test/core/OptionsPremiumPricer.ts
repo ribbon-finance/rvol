@@ -101,7 +101,6 @@ describe("OptionsPremiumPricer", () => {
       );
       const expiryTimestamp = (await time.now()).add(WEEK);
       const isPut = false;
-      const inStable = false;
 
       const premium = await optionsPremiumPricer.getPremium(
         strikePrice,
@@ -380,20 +379,15 @@ describe("OptionsPremiumPricer", () => {
       console.log(
         `premiumCallAsset in underlying asset is ${premiumCallAsset}`
       );
-      console.log(
-        `premiumCallUsdc is stable asset is ${premiumCallUsdc}`
-      );
+      console.log(`premiumCallUsdc is stable asset is ${premiumCallUsdc}`);
 
       assert.isAbove(
         parseInt(
           math.wmul(premiumCallAsset, underlyingPriceShifted).toString()
         ),
-        parseInt(
-          premiumCallUsdc.toString()
-        )
-      )
+        parseInt(premiumCallUsdc.toString())
+      );
     });
-    
 
     it("fits the gas budget", async function () {
       const strikePrice = underlyingPrice.add(
@@ -407,12 +401,13 @@ describe("OptionsPremiumPricer", () => {
         false,
         false
       );
-      const { gas: callUsdcGas } = await testOptionsPremiumPricer.testGetPremium(
-        strikePrice,
-        expiryTimestamp,
-        false,
-        true
-      );
+      const { gas: callUsdcGas } =
+        await testOptionsPremiumPricer.testGetPremium(
+          strikePrice,
+          expiryTimestamp,
+          false,
+          true
+        );
       const { gas: putGas } = await testOptionsPremiumPricer.testGetPremium(
         strikePrice,
         expiryTimestamp,
