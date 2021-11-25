@@ -90,7 +90,7 @@ describe("OptionsPremiumPricer", () => {
     it("reverts on timestamp being in the past", async function () {
       const expiryTimestamp = (await time.now()).sub(WEEK);
       await expect(
-        optionsPremiumPricer.getPremium(0, expiryTimestamp, true)
+        optionsPremiumPricer.getPremium(0, expiryTimestamp, true, true)
       ).to.be.revertedWith("Expiry must be in the future!");
     });
 
@@ -101,11 +101,13 @@ describe("OptionsPremiumPricer", () => {
       );
       const expiryTimestamp = (await time.now()).add(WEEK);
       const isPut = false;
+      const inStable = false;
 
       const premium = await optionsPremiumPricer.getPremium(
         strikePrice,
         expiryTimestamp,
-        isPut
+        isPut,
+        false
       );
 
       console.log(
@@ -136,11 +138,13 @@ describe("OptionsPremiumPricer", () => {
       const premiumCall = await optionsPremiumPricer.getPremium(
         strikePrice,
         expiryTimestamp,
+        false,
         false
       );
       const premiumPut = await optionsPremiumPricer.getPremium(
         strikePrice,
         expiryTimestamp,
+        true,
         true
       );
 
@@ -172,11 +176,13 @@ describe("OptionsPremiumPricer", () => {
       const premiumCall = await optionsPremiumPricer.getPremium(
         strikePrice,
         expiryTimestamp,
+        false,
         false
       );
       const premiumPut = await optionsPremiumPricer.getPremium(
         strikePrice,
         expiryTimestamp,
+        true,
         true
       );
 
@@ -212,12 +218,14 @@ describe("OptionsPremiumPricer", () => {
       const premiumSmall = await optionsPremiumPricer.getPremium(
         strikePriceSmall,
         expiryTimestamp,
-        isPut
+        isPut,
+        false
       );
       const premiumBig = await optionsPremiumPricer.getPremium(
         strikePriceBig,
         expiryTimestamp,
-        isPut
+        isPut,
+        false
       );
 
       console.log(
@@ -250,17 +258,20 @@ describe("OptionsPremiumPricer", () => {
       const strikePrice = underlyingPrice;
       const expiryTimestamp = (await time.now()).add(WEEK);
       const isPut = false;
+      const inStable = false;
 
       const premiumCall = await optionsPremiumPricer.getPremium(
         strikePrice,
         expiryTimestamp,
-        isPut
+        isPut,
+        inStable
       );
 
       const premiumPut = await optionsPremiumPricer.getPremium(
         strikePrice,
         expiryTimestamp,
-        !isPut
+        !isPut,
+        !inStable
       );
 
       console.log(
@@ -298,12 +309,14 @@ describe("OptionsPremiumPricer", () => {
       const premiumSmallTimestamp = await optionsPremiumPricer.getPremium(
         strikePrice,
         expiryTimestampSmall,
-        isPut
+        isPut,
+        false
       );
       const premiumBigTimestamp = await optionsPremiumPricer.getPremium(
         strikePrice,
         expiryTimestampBig,
-        isPut
+        isPut,
+        false
       );
 
       console.log(
@@ -353,11 +366,13 @@ describe("OptionsPremiumPricer", () => {
       const { gas: callGas } = await testOptionsPremiumPricer.testGetPremium(
         strikePrice,
         expiryTimestamp,
+        false,
         false
       );
       const { gas: putGas } = await testOptionsPremiumPricer.testGetPremium(
         strikePrice,
         expiryTimestamp,
+        true,
         true
       );
 
