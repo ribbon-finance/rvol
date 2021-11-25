@@ -357,6 +357,44 @@ describe("OptionsPremiumPricer", () => {
       );
     });
 
+    it("gives equal price (in terms of stable) for both stable and underlying denomination", async function () {
+      const strikePrice = underlyingPrice;
+      const expiryTimestamp = (await time.now()).add(WEEK);
+      const isPut = false;
+      const inStable = false;
+
+      const premiumCallAsset = await optionsPremiumPricer.getPremium(
+        strikePrice,
+        expiryTimestamp,
+        isPut,
+        inStable
+      );
+
+      const premiumCallUsdc = await optionsPremiumPricer.getPremium(
+        strikePrice,
+        expiryTimestamp,
+        isPut,
+        !inStable
+      );
+
+      console.log(
+        `premiumCallAsset in underlying asset is ${premiumCallAsset}`
+      );
+      console.log(
+        `premiumCallUsdc is stable asset is ${premiumCallUsdc}`
+      );
+
+      assert.isAbove(
+        parseInt(
+          math.wmul(premiumCallAsset, underlyingPriceShifted).toString()
+        ),
+        parseInt(
+          premiumCallUsdc.toString()
+        )
+      )
+    });
+    
+
     it("fits the gas budget", async function () {
       const strikePrice = underlyingPrice.add(
         BigNumber.from(300).mul(BigNumber.from(10).pow(8))
@@ -369,6 +407,12 @@ describe("OptionsPremiumPricer", () => {
         false,
         false
       );
+      const { gas: callUsdcGas } = await testOptionsPremiumPricer.testGetPremium(
+        strikePrice,
+        expiryTimestamp,
+        false,
+        true
+      );
       const { gas: putGas } = await testOptionsPremiumPricer.testGetPremium(
         strikePrice,
         expiryTimestamp,
@@ -376,8 +420,9 @@ describe("OptionsPremiumPricer", () => {
         true
       );
 
-      assert.isAtMost(callGas.toNumber(), 56561);
-      assert.isAtMost(putGas.toNumber(), 74013);
+      assert.isAtMost(callGas.toNumber(), 56643);
+      assert.isAtMost(callUsdcGas.toNumber(), 74093);
+      assert.isAtMost(putGas.toNumber(), 74093);
       // console.log("getPremium call:", callGas.toNumber());
       // console.log("getPremium put:", putGas.toNumber());
     });
