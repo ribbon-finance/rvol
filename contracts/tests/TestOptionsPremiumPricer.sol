@@ -21,14 +21,16 @@ contract TestOptionsPremiumPricer is OptionsPremiumPricer {
     function testGetPremium(
         uint256 st,
         uint256 expiryTimestamp,
-        bool isPut
+        bool isPut,
+        bool inStable
     ) external view returns (uint256 result, uint256 gas) {
         bytes memory data =
             abi.encodeWithSelector(
                 this.getPremium.selector,
                 st,
                 expiryTimestamp,
-                isPut
+                isPut,
+                inStable
             );
 
         uint256 startgas = gasleft();

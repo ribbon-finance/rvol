@@ -60,6 +60,7 @@ contract OptionsPremiumPricer is DSMath {
      * @param st is the strike price of the option
      * @param expiryTimestamp is the unix timestamp of expiry
      * @param isPut is whether the option is a put option
+     * @param inStable is whether the premium should be priced in USDC
      * @return premium for 100 contracts with 18 decimals i.e.
      * 500*10**18 = 500 USDC for 100 contracts for puts,
      * 5*10**18 = 5 of underlying asset (ETH, WBTC, etc.) for 100 contracts for calls,
@@ -67,7 +68,8 @@ contract OptionsPremiumPricer is DSMath {
     function getPremium(
         uint256 st,
         uint256 expiryTimestamp,
-        bool isPut
+        bool isPut,
+        bool inStable
     ) external view returns (uint256 premium) {
         require(
             expiryTimestamp > block.timestamp,
@@ -75,6 +77,7 @@ contract OptionsPremiumPricer is DSMath {
         );
 
         uint256 spotPrice = priceOracle.latestAnswer();
+        uint256 stablePrice = stablesOracle.latestAnswer();
 
         (uint256 sp, uint256 v, uint256 t) =
             blackScholesParams(spotPrice, expiryTimestamp);
@@ -86,14 +89,19 @@ contract OptionsPremiumPricer is DSMath {
             10 **
                 (
                     uint256(18).sub(
-                        isPut ? stablesOracleDecimals : priceOracleDecimals
+                        inStable ? stablesOracleDecimals : priceOracleDecimals
                     )
                 );
+
+        uint256 assetPrice = inStable
+            ? stablePrice
+            : spotPrice;
+
         // Make option premium denominated in the underlying
         // asset for call vaults and USDC for put vaults
         premium = isPut
-            ? wdiv(put, stablesOracle.latestAnswer().mul(assetOracleMultiplier))
-            : wdiv(call, spotPrice.mul(assetOracleMultiplier));
+            ? wdiv(put, assetPrice.mul(assetOracleMultiplier))
+            : wdiv(call, assetPrice.mul(assetOracleMultiplier));
 
         // Convert to 18 decimals
         premium = premium.mul(assetOracleMultiplier);
