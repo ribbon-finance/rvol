@@ -4,7 +4,7 @@ pragma solidity ^0.7.3;
 interface IVolatilityOracle {
     function commit(address pool) external;
 
-    function twap(address pool) external returns (uint256 price);
+    function getPrice(address pool) external view returns (uint256);
 
     function vol(address pool)
         external
