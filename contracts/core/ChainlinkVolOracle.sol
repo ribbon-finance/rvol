@@ -16,8 +16,18 @@ contract ChainlinkVolOracle is VolOracle {
         override
         returns (uint256)
     {
-        (, int256 price, , , ) =
-            AggregatorV3Interface(priceFeed).latestRoundData();
-        return uint256(DSMath.imax(price, 0)); // Avoid negative prices from Chainlink
+        (
+            uint80 roundID,
+            int256 price,
+            ,
+            uint256 timeStamp,
+            uint80 answeredInRound
+        ) = AggregatorV3Interface(priceFeed).latestRoundData();
+
+        require(answeredInRound >= roundID, "Stale oracle price");
+        require(timeStamp != 0, "!timeStamp");
+
+        // Avoid negative prices from Chainlink
+        return uint256(DSMath.imax(price, 0));
     }
 }
