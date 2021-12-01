@@ -22,7 +22,7 @@ contract TestVolOracle is DSMath, VolOracle {
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
         require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
 
-        uint256 price = mockTwap();
+        uint256 price = getPrice(pool);
         uint256 _lastPrice = lastPrices[pool];
         uint256 periodReturn = _lastPrice > 0 ? wdiv(price, _lastPrice) : 0;
 
@@ -73,7 +73,7 @@ contract TestVolOracle is DSMath, VolOracle {
         );
     }
 
-    function mockTwap() private view returns (uint256) {
+    function getPrice(address) public view override returns (uint256) {
         return _price;
     }
 

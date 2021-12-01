@@ -11,31 +11,39 @@ const { provider, getContractFactory } = ethers;
 moment.tz.setDefault("UTC");
 
 describe("VolOracle", () => {
-  let oracle: Contract;
+  let v3TwapOracle: Contract;
+  let chainlinkOracle: Contract;
   let mockOracle: Contract;
   let signer: SignerWithAddress;
 
   const PERIOD = 86400 / 2; // 12 hours
   const WINDOW_IN_DAYS = 7; // weekly vol data
   const COMMIT_PHASE_DURATION = 1800; // 30 mins
-  const ethusdcPool = "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8";
-  // const wbtcusdcPool = "0x99ac8cA7087fA4A2A1FB6357269965A2014ABc35";
+  const usdcEthPool = "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8";
+  const usdcEthPriceFeed = "0x986b5E1e1755e3C2440e960477f25201B0a8bbD4";
 
   before(async function () {
     [signer] = await ethers.getSigners();
-    const VolOracle = await getContractFactory("VolOracle", signer);
+    const V3TwapVolOracle = await getContractFactory("V3TwapVolOracle", signer);
+    const ChainlinkVolOracle = await getContractFactory("ChainlinkVolOracle", signer);
     const TestVolOracle = await getContractFactory("TestVolOracle", signer);
 
-    oracle = await VolOracle.deploy(PERIOD, WINDOW_IN_DAYS);
+    v3TwapOracle = await V3TwapVolOracle.deploy(PERIOD, WINDOW_IN_DAYS);
+    chainlinkOracle = await ChainlinkVolOracle.deploy(PERIOD, WINDOW_IN_DAYS);
     mockOracle = await TestVolOracle.deploy(PERIOD, WINDOW_IN_DAYS);
-    // oracle = await VolOracle.deploy(ethusdcPool, weth, usdc);
   });
 
-  describe("twap", () => {
-    it("gets the TWAP for a period", async function () {
+  describe("getPrice", () => {
+    it("v3TwapVolOracle: gets the TWAP for a period", async function () {
       assert.equal(
-        (await oracle.twap(ethusdcPool)).toString(),
+        (await v3TwapOracle.getPrice(usdcEthPool)).toString(),
         "411907019541423"
+      );
+    });
+    it("chainlinkOracle: gets the price feed for a period", async function () {
+      assert.equal(
+        (await chainlinkOracle.getPrice(usdcEthPriceFeed)).toString(),
+        "413530668408711"
       );
     });
   });
@@ -43,116 +51,214 @@ describe("VolOracle", () => {
   describe("initPool", () => {
     time.revertToSnapshotAfterEach();
 
-    it("initializes pool", async function () {
-      await expect(oracle.commit(ethusdcPool)).to.be.revertedWith(
+    it("v3TwapOracle: initializes pool", async function () {
+      await expect(v3TwapOracle.commit(usdcEthPool)).to.be.revertedWith(
         "!pool initialize"
       );
-      await oracle.initPool(ethusdcPool);
-      oracle.commit(ethusdcPool);
+      await v3TwapOracle.initPool(usdcEthPool);
+      v3TwapOracle.commit(usdcEthPool);
     });
 
-    it("reverts when pool has already been initialized", async function () {
-      await oracle.initPool(ethusdcPool);
-      await expect(oracle.initPool(ethusdcPool)).to.be.revertedWith(
+    it("v3TwapOracle: reverts when pool has already been initialized", async function () {
+      await v3TwapOracle.initPool(usdcEthPool);
+      await expect(v3TwapOracle.initPool(usdcEthPool)).to.be.revertedWith(
         "Pool initialized"
       );
     });
+
+    it("chainlinkOracle: initializes pool", async function () {
+      await expect(chainlinkOracle.commit(usdcEthPriceFeed)).to.be.revertedWith(
+        "!pool initialize"
+      );
+      await chainlinkOracle.initPool(usdcEthPriceFeed);
+      chainlinkOracle.commit(usdcEthPriceFeed);
+    });
+
+    it("chainlinkOracle: reverts when pool has already been initialized", async function () {
+      await chainlinkOracle.initPool(usdcEthPriceFeed);
+      await expect(chainlinkOracle.initPool(usdcEthPriceFeed)).to.be.revertedWith(
+        "Pool initialized"
+      );
+    });
+
   });
 
   describe("commit", () => {
     time.revertToSnapshotAfterEach();
 
-    it("commits the twap", async function () {
-      await oracle.initPool(ethusdcPool);
+    it("v3TwapOracle: commits the twap", async function () {
+      await v3TwapOracle.initPool(usdcEthPool);
       const topOfPeriod = await getTopOfPeriod();
       await time.increaseTo(topOfPeriod);
-      await oracle.commit(ethusdcPool);
+      await v3TwapOracle.commit(usdcEthPool);
 
       const {
         lastTimestamp: timestamp1,
         mean: mean1,
         dsq: dsq1,
-      } = await oracle.accumulators(ethusdcPool);
+      } = await v3TwapOracle.accumulators(usdcEthPool);
       assert.equal(timestamp1, topOfPeriod);
       assert.equal(mean1.toNumber(), 0);
       assert.equal(dsq1.toNumber(), 0);
 
-      let stdev = await oracle.vol(ethusdcPool);
+      let stdev = await v3TwapOracle.vol(usdcEthPool);
       assert.equal(stdev.toNumber(), 0);
     });
 
-    it("reverts when out of commit phase", async function () {
-      await oracle.initPool(ethusdcPool);
+    it("chainlinkOracle: commits the price", async function () {
+      await chainlinkOracle.initPool(usdcEthPriceFeed);
+      const topOfPeriod = await getTopOfPeriod();
+      await time.increaseTo(topOfPeriod);
+      await chainlinkOracle.commit(usdcEthPriceFeed);
+
+      const {
+        lastTimestamp: timestamp1,
+        mean: mean1,
+        dsq: dsq1,
+      } = await chainlinkOracle.accumulators(usdcEthPriceFeed);
+      assert.equal(timestamp1, topOfPeriod);
+      assert.equal(mean1.toNumber(), 0);
+      assert.equal(dsq1.toNumber(), 0);
+
+      let stdev = await chainlinkOracle.vol(usdcEthPriceFeed);
+      assert.equal(stdev.toNumber(), 0);
+    });
+
+    it("v3TwapOracle: reverts when out of commit phase", async function () {
+      await v3TwapOracle.initPool(usdcEthPool);
       const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
 
       await time.increaseTo(topOfPeriod - COMMIT_PHASE_DURATION - 10);
-      await expect(oracle.commit(ethusdcPool)).to.be.revertedWith(
+      await expect(v3TwapOracle.commit(usdcEthPool)).to.be.revertedWith(
         "Not commit phase"
       );
 
       await time.increaseTo(topOfPeriod + COMMIT_PHASE_DURATION + 10);
-      await expect(oracle.commit(ethusdcPool)).to.be.revertedWith(
+      await expect(v3TwapOracle.commit(usdcEthPool)).to.be.revertedWith(
         "Not commit phase"
       );
     });
 
-    it("reverts when there is an existing commit for period", async function () {
-      await oracle.initPool(ethusdcPool);
+    it("chainlinkOracle: reverts when out of commit phase", async function () {
+      await chainlinkOracle.initPool(usdcEthPriceFeed);
+      const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
+
+      await time.increaseTo(topOfPeriod - COMMIT_PHASE_DURATION - 10);
+      await expect(chainlinkOracle.commit(usdcEthPriceFeed)).to.be.revertedWith(
+        "Not commit phase"
+      );
+
+      await time.increaseTo(topOfPeriod + COMMIT_PHASE_DURATION + 10);
+      await expect(chainlinkOracle.commit(usdcEthPriceFeed)).to.be.revertedWith(
+        "Not commit phase"
+      );
+    });
+
+    it("v3TwapOracle: reverts when there is an existing commit for period", async function () {
+      await v3TwapOracle.initPool(usdcEthPool);
       const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
       await time.increaseTo(topOfPeriod);
 
-      await oracle.commit(ethusdcPool);
+      await v3TwapOracle.commit(usdcEthPool);
 
       // Cannot commit immediately after
-      await expect(oracle.commit(ethusdcPool)).to.be.revertedWith("Committed");
+      await expect(v3TwapOracle.commit(usdcEthPool)).to.be.revertedWith("Committed");
 
       // Cannot commit before commit phase begins
       const beforePeriod = topOfPeriod + 100;
       await time.increaseTo(beforePeriod);
-      await expect(oracle.commit(ethusdcPool)).to.be.revertedWith("Committed");
+      await expect(v3TwapOracle.commit(usdcEthPool)).to.be.revertedWith("Committed");
 
       const nextPeriod = topOfPeriod + PERIOD - COMMIT_PHASE_DURATION;
       await time.increaseTo(nextPeriod);
-      await oracle.commit(ethusdcPool);
+      await v3TwapOracle.commit(usdcEthPool);
     });
 
-    it("reverts when pool has not been initialized", async function () {
+    it("chainlinkOracle: reverts when there is an existing commit for period", async function () {
+      await chainlinkOracle.initPool(usdcEthPriceFeed);
+      const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
+      await time.increaseTo(topOfPeriod);
+
+      await chainlinkOracle.commit(usdcEthPriceFeed);
+
+      // Cannot commit immediately after
+      await expect(chainlinkOracle.commit(usdcEthPriceFeed)).to.be.revertedWith("Committed");
+
+      // Cannot commit before commit phase begins
+      const beforePeriod = topOfPeriod + 100;
+      await time.increaseTo(beforePeriod);
+      await expect(chainlinkOracle.commit(usdcEthPriceFeed)).to.be.revertedWith("Committed");
+
+      const nextPeriod = topOfPeriod + PERIOD - COMMIT_PHASE_DURATION;
+      await time.increaseTo(nextPeriod);
+      await chainlinkOracle.commit(usdcEthPriceFeed);
+    });
+
+    it("v3TwapOracle: reverts when pool has not been initialized", async function () {
       const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
       await time.increaseTo(topOfPeriod);
 
       // Cannot commit immediately after
-      await expect(oracle.commit(ethusdcPool)).to.be.revertedWith(
+      await expect(v3TwapOracle.commit(usdcEthPool)).to.be.revertedWith(
         "!pool initialize"
       );
     });
 
-    it("commits when within commit phase", async function () {
-      await oracle.initPool(ethusdcPool);
+    it("v3TwapOracle: reverts when pool has not been initialized", async function () {
+      const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
+      await time.increaseTo(topOfPeriod);
+
+      // Cannot commit immediately after
+      await expect(v3TwapOracle.commit(usdcEthPool)).to.be.revertedWith(
+        "!pool initialize"
+      );
+    });
+
+    it("chainlinkOracle: commits when within commit phase", async function () {
+      await chainlinkOracle.initPool(usdcEthPriceFeed);
       const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
       await time.increaseTo(topOfPeriod - COMMIT_PHASE_DURATION);
-      await oracle.commit(ethusdcPool);
+      await chainlinkOracle.commit(usdcEthPriceFeed);
 
       const nextTopOfPeriod = (await getTopOfPeriod()) + PERIOD;
       await time.increaseTo(nextTopOfPeriod + COMMIT_PHASE_DURATION);
-      await oracle.commit(ethusdcPool);
+      await chainlinkOracle.commit(usdcEthPriceFeed);
     });
 
-    it("fits gas budget", async function () {
-      await oracle.initPool(ethusdcPool);
+    it("v3TwapOracle: fits gas budget", async function () {
+      await v3TwapOracle.initPool(usdcEthPool);
       const latestTimestamp = (await provider.getBlock("latest")).timestamp;
       const topOfPeriod = latestTimestamp - (latestTimestamp % PERIOD);
 
       // First time is more expensive
-      const tx1 = await oracle.commit(ethusdcPool);
+      const tx1 = await v3TwapOracle.commit(usdcEthPool);
       const receipt1 = await tx1.wait();
       assert.isAtMost(receipt1.gasUsed.toNumber(), 156538);
 
       await time.increaseTo(topOfPeriod + PERIOD);
 
       // Second time is cheaper
-      const tx2 = await oracle.commit(ethusdcPool);
+      const tx2 = await v3TwapOracle.commit(usdcEthPool);
       const receipt2 = await tx2.wait();
-      assert.isAtMost(receipt2.gasUsed.toNumber(), 72136);
+      assert.isAtMost(receipt2.gasUsed.toNumber(), 72984);
+    });
+
+    it("chainlinkOracle: fits gas budget", async function () {
+      await chainlinkOracle.initPool(usdcEthPriceFeed);
+      const latestTimestamp = (await provider.getBlock("latest")).timestamp;
+      const topOfPeriod = latestTimestamp - (latestTimestamp % PERIOD);
+
+      // First time is more expensive
+      const tx1 = await chainlinkOracle.commit(usdcEthPriceFeed);
+      const receipt1 = await tx1.wait();
+      assert.isAtMost(receipt1.gasUsed.toNumber(), 96238);
+
+      await time.increaseTo(topOfPeriod + PERIOD);
+
+      // Second time is cheaper
+      const tx2 = await chainlinkOracle.commit(usdcEthPriceFeed);
+      const receipt2 = await tx2.wait();
+      assert.isAtMost(receipt2.gasUsed.toNumber(), 60911);
     });
 
     it("updates the vol", async function () {
@@ -169,14 +275,14 @@ describe("VolOracle", () => {
         BigNumber.from("3068199"),
       ];
 
-      await mockOracle.initPool(ethusdcPool);
+      await mockOracle.initPool(usdcEthPool);
 
       for (let i = 0; i < values.length; i++) {
         await mockOracle.setPrice(values[i]);
         const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
         await time.increaseTo(topOfPeriod);
-        await mockOracle.mockCommit(ethusdcPool);
-        let stdev = await mockOracle.vol(ethusdcPool);
+        await mockOracle.mockCommit(usdcEthPool);
+        let stdev = await mockOracle.vol(usdcEthPool);
         assert.equal(stdev.toString(), stdevs[i].toString());
       }
     });
@@ -203,17 +309,17 @@ describe("VolOracle", () => {
         BigNumber.from("2650000000"),
       ];
 
-      await mockOracle.initPool(ethusdcPool);
+      await mockOracle.initPool(usdcEthPool);
 
       for (let i = 0; i < values.length; i++) {
         await mockOracle.setPrice(values[i]);
         const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
         await time.increaseTo(topOfPeriod);
-        await mockOracle.mockCommit(ethusdcPool);
+        await mockOracle.mockCommit(usdcEthPool);
       }
-      assert.equal((await mockOracle.vol(ethusdcPool)).toString(), "6607827"); // 6.6%
+      assert.equal((await mockOracle.vol(usdcEthPool)).toString(), "6607827"); // 6.6%
       assert.equal(
-        (await mockOracle.annualizedVol(ethusdcPool)).toString(),
+        (await mockOracle.annualizedVol(usdcEthPool)).toString(),
         "178411329"
       ); // 178% annually
     });

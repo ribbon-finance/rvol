@@ -12,7 +12,7 @@ import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
 import {Math} from "../libraries/Math.sol";
 import {PRBMathSD59x18} from "../libraries/PRBMathSD59x18.sol";
 
-contract VolOracle is DSMath {
+abstract contract VolOracle is DSMath {
     using SafeMath for uint256;
 
     /**
@@ -78,7 +78,7 @@ contract VolOracle is DSMath {
     }
 
     /**
-     * @notice Initialized pool observation window
+     * @notice Initialized pool or chainlink feed observation window
      */
     function initPool(address pool) external {
         require(observations[pool].length == 0, "Pool initialized");
@@ -86,7 +86,8 @@ contract VolOracle is DSMath {
     }
 
     /**
-     * @notice Commits an oracle update. Must be called after pool initialized
+     * @notice Commits an oracle update.
+     * Must be called after pool or chainlink feed initialized
      */
     function commit(address pool) external {
         require(observations[pool].length > 0, "!pool initialize");
@@ -94,11 +95,11 @@ contract VolOracle is DSMath {
         (uint32 commitTimestamp, uint32 gapFromPeriod) = secondsFromPeriod();
         require(gapFromPeriod < commitPhaseDuration, "Not commit phase");
 
-        uint256 price = twap(pool);
+        uint256 price = getPrice(pool);
         uint256 _lastPrice = lastPrices[pool];
         uint256 periodReturn = _lastPrice > 0 ? wdiv(price, _lastPrice) : 0;
 
-        require(price > 0, "Price from twap is 0");
+        require(price > 0, "Price from oracle is 0");
 
         // logReturn is in 10**18
         // we need to scale it down to 10**8
@@ -175,97 +176,6 @@ contract VolOracle is DSMath {
     }
 
     /**
-     * @notice Returns the TWAP for the entire Uniswap observation period
-     * @return price is the TWAP quoted in quote currency
-     */
-    function twap(address pool) public view returns (uint256 price) {
-        (
-            int56 oldestTickCumulative,
-            int56 newestTickCumulative,
-            uint32 duration
-        ) = getTickCumulatives(pool);
-
-        IUniswapV3Pool uniPool = IUniswapV3Pool(pool);
-        address token0 = uniPool.token0();
-        address token1 = uniPool.token1();
-
-        require(duration > 0, "!duration");
-
-        int24 timeWeightedAverageTick =
-            getTimeWeightedAverageTick(
-                oldestTickCumulative,
-                newestTickCumulative,
-                duration
-            );
-
-        // Get the price of a unit of asset
-        // For ETH, it would be 1 ether (10**18)
-        uint256 baseCurrencyDecimals = IERC20Detailed(token0).decimals();
-        uint128 quoteAmount = uint128(1 * 10**baseCurrencyDecimals);
-
-        return
-            OracleLibrary.getQuoteAtTick(
-                timeWeightedAverageTick,
-                quoteAmount,
-                token0,
-                token1
-            );
-    }
-
-    /**
-     * @notice Gets the time weighted average tick
-     * @return timeWeightedAverageTick is the tick which was resolved to be the time-weighted average
-     */
-    function getTimeWeightedAverageTick(
-        int56 olderTickCumulative,
-        int56 newerTickCumulative,
-        uint32 duration
-    ) private pure returns (int24 timeWeightedAverageTick) {
-        int56 tickCumulativesDelta = newerTickCumulative - olderTickCumulative;
-        int24 _timeWeightedAverageTick = int24(tickCumulativesDelta / duration);
-
-        // Always round to negative infinity
-        if (tickCumulativesDelta < 0 && (tickCumulativesDelta % duration != 0))
-            _timeWeightedAverageTick--;
-
-        return _timeWeightedAverageTick;
-    }
-
-    /**
-     * @notice Gets the tick cumulatives which is the tick * seconds
-     * @return oldestTickCumulative is the tick cumulative at last index of the observations array
-     * @return newestTickCumulative is the tick cumulative at the first index of the observations array
-     * @return duration is the TWAP duration determined by the difference between newest-oldest
-     */
-    function getTickCumulatives(address pool)
-        private
-        view
-        returns (
-            int56 oldestTickCumulative,
-            int56 newestTickCumulative,
-            uint32 duration
-        )
-    {
-        IUniswapV3Pool uniPool = IUniswapV3Pool(pool);
-
-        (, , uint16 newestIndex, uint16 observationCardinality, , , ) =
-            uniPool.slot0();
-
-        // Get the latest observation
-        (uint32 newestTimestamp, int56 _newestTickCumulative, , ) =
-            uniPool.observations(newestIndex);
-
-        // Get the oldest observation
-        uint256 oldestIndex = (newestIndex + 1) % observationCardinality;
-        (uint32 oldestTimestamp, int56 _oldestTickCumulative, , ) =
-            uniPool.observations(oldestIndex);
-
-        uint32 _duration = newestTimestamp - oldestTimestamp;
-
-        return (_oldestTickCumulative, _newestTickCumulative, _duration);
-    }
-
-    /**
      * @notice Returns the closest period from the current block.timestamp
      * @return closestPeriod is the closest period timestamp
      * @return gapFromPeriod is the gap between now and the closest period: abs(periodTimestamp - block.timestamp)
@@ -300,4 +210,6 @@ contract VolOracle is DSMath {
             ? size
             : accumulators[pool].currentObservationIndex + (isInc ? 1 : 0);
     }
+
+    function getPrice(address pool) public view virtual returns (uint256);
 }

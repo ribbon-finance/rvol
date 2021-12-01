@@ -95,6 +95,7 @@
     ]
   },
   "dependencies": {
+    "@chainlink/contracts": "^0.2.2",
     "@uniswap/v3-core": "^1.0.0",
     "@uniswap/v3-periphery": "^1.0.1",
     "axios": "^0.21.1",
