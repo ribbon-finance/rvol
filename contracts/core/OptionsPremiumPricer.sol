@@ -18,8 +18,10 @@ contract OptionsPremiumPricer is DSMath {
     IVolatilityOracle public immutable volatilityOracle;
     IPriceOracle public immutable priceOracle;
     IPriceOracle public immutable stablesOracle;
+    IPriceOracle public immutable nativeTokenOracle;
     uint256 private immutable priceOracleDecimals;
     uint256 private immutable stablesOracleDecimals;
+    uint256 private immutable nativeTokenOracleDecimals;
 
     // For reference - IKEEP3rVolatility: 0xCCdfCB72753CfD55C5afF5d98eA5f9C43be9659d
 
@@ -29,24 +31,29 @@ contract OptionsPremiumPricer is DSMath {
      * @param _volatilityOracle is the oracle for historical volatility
      * @param _priceOracle is the Chainlink price oracle for the underlying asset
      * @param _stablesOracle is the Chainlink price oracle for the strike asset (e.g. USDC)
+     * @param _nativeTokenOracle is the Chainlink price oracle for wrapped native tokens (e.g. WETH)
      */
     constructor(
         address _pool,
         address _volatilityOracle,
         address _priceOracle,
-        address _stablesOracle
+        address _stablesOracle,
+        address _nativeTokenOracle
     ) {
         require(_pool != address(0), "!_pool");
         require(_volatilityOracle != address(0), "!_volatilityOracle");
         require(_priceOracle != address(0), "!_priceOracle");
         require(_stablesOracle != address(0), "!_stablesOracle");
+        require(_nativeTokenOracle != address(0), "!_nativeTokenOracle");
 
         pool = _pool;
         volatilityOracle = IVolatilityOracle(_volatilityOracle);
         priceOracle = IPriceOracle(_priceOracle);
         stablesOracle = IPriceOracle(_stablesOracle);
+        nativeTokenOracle = IPriceOracle(_nativeTokenOracle);
         priceOracleDecimals = IPriceOracle(_priceOracle).decimals();
         stablesOracleDecimals = IPriceOracle(_stablesOracle).decimals();
+        nativeTokenOracleDecimals = IPriceOracle(_nativeTokenOracle).decimals();
     }
 
     /**
@@ -94,6 +101,58 @@ contract OptionsPremiumPricer is DSMath {
         premium = isPut
             ? wdiv(put, stablesOracle.latestAnswer().mul(assetOracleMultiplier))
             : wdiv(call, spotPrice.mul(assetOracleMultiplier));
+
+        // Convert to 18 decimals
+        premium = premium.mul(assetOracleMultiplier);
+    }
+
+     /**
+     * @notice Calculates the premium of the provided option using Black-Scholes 
+     either in stables or native tokens
+     * @param st is the strike price of the option
+     * @param expiryTimestamp is the unix timestamp of expiry
+     * @param isPut is whether the option is a put option
+     * @param inStables when true, the premium will be denominated in stable, otherwise
+     the premium will be denominated in wrapped native token
+     * @return premium for 100 contracts with 18 decimals
+     */
+    function getPremiumInCommonAsset(
+        uint256 st,
+        uint256 expiryTimestamp,
+        bool isPut,
+        bool inStables
+    ) external view returns (uint256 premium) {
+        require(
+            expiryTimestamp > block.timestamp,
+            "Expiry must be in the future!"
+        );
+
+        uint256 spotPrice = priceOracle.latestAnswer();
+
+        (uint256 sp, uint256 v, uint256 t) =
+            blackScholesParams(spotPrice, expiryTimestamp);
+
+        (uint256 call, uint256 put) = quoteAll(t, v, sp, st);
+
+        // Multiplier to convert oracle latestAnswer to 18 decimals
+        uint256 assetOracleMultiplier =
+            10 **
+                (
+                    uint256(18).sub(
+                        inStables ? stablesOracleDecimals : nativeTokenOracleDecimals
+                    )
+                );
+
+        uint256 assetPrice =
+            inStables 
+                ? stablesOracle.latestAnswer()
+                : nativeTokenOracle.latestAnswer();
+
+        // Make option premium denominated in the underlying
+        // asset for call vaults and USDC for put vaults
+        premium = isPut
+            ? wdiv(put, assetPrice.mul(assetOracleMultiplier))
+            : wdiv(call, assetPrice.mul(assetOracleMultiplier));
 
         // Convert to 18 decimals
         premium = premium.mul(assetOracleMultiplier);
