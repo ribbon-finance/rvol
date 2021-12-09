@@ -106,7 +106,7 @@ contract OptionsPremiumPricer is DSMath {
         premium = premium.mul(assetOracleMultiplier);
     }
 
-     /**
+    /**
      * @notice Calculates the premium of the provided option using Black-Scholes 
      either in stables or native tokens
      * @param st is the strike price of the option
@@ -139,12 +139,14 @@ contract OptionsPremiumPricer is DSMath {
             10 **
                 (
                     uint256(18).sub(
-                        inStables ? stablesOracleDecimals : nativeTokenOracleDecimals
+                        inStables
+                            ? stablesOracleDecimals
+                            : nativeTokenOracleDecimals
                     )
                 );
 
         uint256 assetPrice =
-            inStables 
+            inStables
                 ? stablesOracle.latestAnswer()
                 : nativeTokenOracle.latestAnswer();
 

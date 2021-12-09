@@ -8,13 +8,15 @@ contract TestOptionsPremiumPricer is OptionsPremiumPricer {
         address _pool,
         address _volatilityOracle,
         address _priceOracle,
-        address _stablesOracle
+        address _stablesOracle,
+        address _nativeTokenOracle
     )
         OptionsPremiumPricer(
             _pool,
             _volatilityOracle,
             _priceOracle,
-            _stablesOracle
+            _stablesOracle,
+            _nativeTokenOracle
         )
     {}
 

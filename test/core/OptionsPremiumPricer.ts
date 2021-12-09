@@ -49,13 +49,15 @@ describe("OptionsPremiumPricer", () => {
       ethusdcPool,
       mockOracle.address,
       wethPriceOracleAddress,
-      usdcPriceOracleAddress
+      usdcPriceOracleAddress,
+      wethPriceOracleAddress
     );
     testOptionsPremiumPricer = await TestOptionsPremiumPricer.deploy(
       ethusdcPool,
       mockOracle.address,
       wethPriceOracleAddress,
-      usdcPriceOracleAddress
+      usdcPriceOracleAddress,
+      wethPriceOracleAddress
     );
 
     wethPriceOracle = await ethers.getContractAt(
