@@ -107,20 +107,18 @@ contract OptionsPremiumPricer is DSMath {
     }
 
     /**
-     * @notice Calculates the premium of the provided option using Black-Scholes 
-     either in stables or native tokens
+     * @notice Calculates the premium of the provided option using Black-Scholes in stables
      * @param st is the strike price of the option
      * @param expiryTimestamp is the unix timestamp of expiry
      * @param isPut is whether the option is a put option
-     * @param inStables when true, the premium will be denominated in stable, otherwise
-     the premium will be denominated in wrapped native token
+     * @param spotInNative is whether the spot price is denominated in native tokens
      * @return premium for 100 contracts with 18 decimals
      */
-    function getPremiumInCommonAsset(
+    function getPremiumInStables(
         uint256 st,
         uint256 expiryTimestamp,
         bool isPut,
-        bool inStables
+        bool spotInNative
     ) external view returns (uint256 premium) {
         require(
             expiryTimestamp > block.timestamp,
@@ -134,21 +132,16 @@ contract OptionsPremiumPricer is DSMath {
 
         (uint256 call, uint256 put) = quoteAll(t, v, sp, st);
 
-        // Multiplier to convert oracle latestAnswer to 18 decimals
         uint256 assetOracleMultiplier =
             10 **
                 (
                     uint256(18).sub(
-                        inStables
-                            ? stablesOracleDecimals
-                            : nativeTokenOracleDecimals
+                        spotInNative ? nativeTokenOracleDecimals : stablesOracleDecimals
                     )
                 );
 
         uint256 assetPrice =
-            inStables
-                ? stablesOracle.latestAnswer()
-                : nativeTokenOracle.latestAnswer();
+            spotInNative ? nativeTokenOracle.latestAnswer() : stablesOracle.latestAnswer();
 
         // Make option premium denominated in the underlying
         // asset for call vaults and USDC for put vaults
@@ -358,5 +351,26 @@ contract OptionsPremiumPricer is DSMath {
      */
     function getUnderlyingPrice() external view returns (uint256 price) {
         price = priceOracle.latestAnswer();
+    }
+
+    /**
+     * @notice Calculates the underlying assets price
+     */
+    function getStablePrice() external view returns (uint256 price) {
+        price = stablesOracle.latestAnswer();
+    }
+
+    /**
+     * @notice Calculates the underlying assets price
+     */
+    function getNativeTokenPrice() external view returns (uint256 price) {
+        price = nativeTokenOracle.latestAnswer();
+    }
+
+    /**
+     * @notice Calculates the underlying assets price
+     */
+    function getPriceDecimals() external view returns (uint256 price) {
+        price = priceOracleDecimals;
     }
 }
