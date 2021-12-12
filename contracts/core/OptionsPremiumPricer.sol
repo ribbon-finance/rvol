@@ -122,7 +122,6 @@ contract OptionsPremiumPricer is DSMath {
 
         // Convert to 18 decimals
         premium = premium.mul(assetOracleMultiplier);
-        premium = isPut ? put : call;
     }
 
     /**
@@ -161,51 +160,26 @@ contract OptionsPremiumPricer is DSMath {
         uint256 expiryTimestamp,
         bool isPut
     ) external view returns (uint256 premium) {
-        
-        // uint256 spotPrice = priceOracle.latestAnswer();
-        uint256 spotDecimals = priceOracleDecimals;
+        uint256 oracleMultiplier = 10 ** uint256(18).sub(8);
 
-        uint256 spotDecimalMultiplier = 10 ** spotDecimals.sub(8);
-
-        uint256 spotPrice = priceOracle.latestAnswer();
-        uint256 strike = st.div(spotDecimalMultiplier);
-        
-
-        // if (spotInNative) {
-        //     uint256 assetDecimals = priceOracleDecimals;
-        //     uint256 nativeTokenOracleMultiplier = 
-        //         10 ** assetDecimals
-        //             .sub(nativeTokenOracleDecimals);
-
-        //     spotPrice = wdiv(
-        //         spotPrice, 
-        //         nativeTokenOracle.latestAnswer().mul(nativeTokenOracleMultiplier)
-        //     );
-
-        //     spotPrice = spotPrice.div(10 ** assetDecimals.sub(nativeTokenOracleDecimals));
-        // }
-        
-        // (uint256 assetPrice, uint256 assetDecimals) = spotInNative
-        //     ? (nativeTokenOracle.latestAnswer(), nativeTokenOracleDecimals)
-        //     : (stablesOracle.latestAnswer(), stablesOracleDecimals);
-
-        // premium = _getPremium(
-        //     st, 
-        //     expiryTimestamp, 
-        //     spotPrice, 
-        //     assetPrice, 
-        //     assetDecimals, 
-        //     isPut
-        // );
+        uint256 nativeTokenPrice = nativeTokenOracle.latestAnswer();
+        uint256 strikeInStables = wmul(
+            st, 
+            nativeTokenPrice.mul(oracleMultiplier)
+        ).div(oracleMultiplier);
+        uint256 spotInStables = wmul(
+            priceOracle.latestAnswer(), 
+            nativeTokenPrice.mul(oracleMultiplier)
+        );
+    
         premium = _getPremium(
-            strike, 
+            strikeInStables, 
             expiryTimestamp, 
-            spotPrice, 
+            spotInStables, 
             stablesOracle.latestAnswer(), 
             stablesOracleDecimals, 
             isPut
         );
-        // premium = st;
     }
 
     /**
@@ -213,6 +187,7 @@ contract OptionsPremiumPricer is DSMath {
      * Formula reference: `d_1` in https://www.investopedia.com/terms/b/blackscholes.asp
      * http://www.optiontradingpedia.com/options_delta.htm
      * https://www.macroption.com/black-scholes-formula/
+     * @notice ONLY used when spot oracle is denominated in USDC
      * @param st is the strike price of the option
      * @param expiryTimestamp is the unix timestamp of expiry
      * @return delta for given option. 4 decimals (ex: 8100 = 0.81 delta) as this is what strike selection
@@ -229,24 +204,45 @@ contract OptionsPremiumPricer is DSMath {
         );
 
         uint256 spotPrice = priceOracle.latestAnswer();
-        (uint256 sp, uint256 v, uint256 t) =
+        (uint256 sp, uint256 v,) =
             blackScholesParams(spotPrice, expiryTimestamp);
 
-        uint256 d1;
-        uint256 d2;
+        delta = _getOptionDelta(
+            sp,
+            st,
+            v,
+            expiryTimestamp
+        );
+    }
 
-        // Divide delta by 10 ** 10 to bring it to 4 decimals for strike selection
-        if (sp >= st) {
-            (d1, d2) = derivatives(t, v, sp, st);
-            delta = Math.ncdf((Math.FIXED_1 * d1) / 1e18).div(10**10);
-        } else {
-            // If underlying < strike price notice we switch st <-> sp passed into d
-            (d1, d2) = derivatives(t, v, st, sp);
-            delta = uint256(10)
-                .mul(10**13)
-                .sub(Math.ncdf((Math.FIXED_1 * d2) / 1e18))
-                .div(10**10);
-        }
+    /**
+     * @notice Calculates the option's delta 
+     * @notice ONLY used when spot oracle is denominated in native tokens (e.g. ETH)
+     * @param st is the strike price of the option
+     * @param expiryTimestamp is the unix timestamp of expiry
+     * @return delta for given option. 4 decimals (ex: 8100 = 0.81 delta) as this is what strike selection
+     * module recognizes
+     */
+    function getOptionDeltaNativePairs(uint256 st, uint256 expiryTimestamp)
+        external
+        view
+        returns (uint256 delta)
+    {
+        require(
+            expiryTimestamp > block.timestamp,
+            "Expiry must be in the future!"
+        );
+        
+        uint256 sp = priceOracle.latestAnswer();
+        (, uint256 v,) =
+            blackScholesParams(sp, expiryTimestamp);
+
+        delta = _getOptionDelta(
+            sp,
+            st,
+            v,
+            expiryTimestamp
+        );
     }
 
     /**
@@ -272,6 +268,30 @@ contract OptionsPremiumPricer is DSMath {
             "Expiry must be in the future!"
         );
 
+        delta = _getOptionDelta(
+            sp,
+            st,
+            v,
+            expiryTimestamp
+        );
+    }
+
+    /**
+     * @notice Internal function to calculate the option's delta 
+     * @param st is the strike price of the option
+     * @param expiryTimestamp is the unix timestamp of expiry
+     * @return delta for given option. 4 decimals (ex: 8100 = 0.81 delta) as this is what strike selection
+     * module recognizes
+     */
+    function _getOptionDelta(
+        uint256 sp,
+        uint256 st,
+        uint256 v,
+        uint256 expiryTimestamp
+    )   internal
+        view
+        returns (uint256 delta)
+    {
         // days until expiry
         uint256 t = expiryTimestamp.sub(block.timestamp).div(1 days);
 

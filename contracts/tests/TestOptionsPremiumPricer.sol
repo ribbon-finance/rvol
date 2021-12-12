@@ -115,6 +115,29 @@ contract TestOptionsPremiumPricer is OptionsPremiumPricer {
         }
     }
 
+    function testGetOptionDeltaNativePairs(uint256 st, uint256 expiryTimestamp)
+        external
+        view
+        returns (uint256 result, uint256 gas)
+    {
+        bytes memory data =
+            abi.encodeWithSelector(
+                bytes4(keccak256(bytes("getOptionDeltaNativePairs(uint256,uint256"))),
+                st,
+                expiryTimestamp
+            );
+
+        uint256 startgas = gasleft();
+        (bool success, bytes memory returnData) =
+            address(this).staticcall(data);
+        gas = startgas - gasleft();
+
+        result = 0;
+        if (success) {
+            result = abi.decode(returnData, (uint256));
+        }
+    }
+
     function testGetOptionDelta(
         uint256 sp,
         uint256 st,
