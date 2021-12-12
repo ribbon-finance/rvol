@@ -58,6 +58,7 @@ contract OptionsPremiumPricer is DSMath {
 
     /**
      * @notice Calculates the premium of the provided option using Black-Scholes
+     * @notice ONLY use when spot oracle is denominated in USDC
      * References for Black-Scholes:
        https://www.macroption.com/black-scholes-formula/
        https://www.investopedia.com/terms/b/blackscholes.asp
@@ -76,12 +77,33 @@ contract OptionsPremiumPricer is DSMath {
         uint256 expiryTimestamp,
         bool isPut
     ) external view returns (uint256 premium) {
+        uint256 spotPrice = priceOracle.latestAnswer();
+        (uint256 assetPrice, uint256 assetDecimals) = isPut
+            ? (stablesOracle.latestAnswer(), stablesOracleDecimals)
+            : (spotPrice, priceOracleDecimals);
+
+        premium = _getPremium(
+            st, 
+            expiryTimestamp, 
+            spotPrice, 
+            assetPrice, 
+            assetDecimals, 
+            isPut
+        );
+    }
+
+    function _getPremium(
+        uint256 st, 
+        uint256 expiryTimestamp,
+        uint256 spotPrice,
+        uint256 assetPrice,
+        uint256 assetDecimals, 
+        bool isPut
+    ) internal view returns (uint256 premium) {
         require(
             expiryTimestamp > block.timestamp,
             "Expiry must be in the future!"
         );
-
-        uint256 spotPrice = priceOracle.latestAnswer();
 
         (uint256 sp, uint256 v, uint256 t) =
             blackScholesParams(spotPrice, expiryTimestamp);
@@ -90,58 +112,7 @@ contract OptionsPremiumPricer is DSMath {
 
         // Multiplier to convert oracle latestAnswer to 18 decimals
         uint256 assetOracleMultiplier =
-            10 **
-                (
-                    uint256(18).sub(
-                        isPut ? stablesOracleDecimals : priceOracleDecimals
-                    )
-                );
-        // Make option premium denominated in the underlying
-        // asset for call vaults and USDC for put vaults
-        premium = isPut
-            ? wdiv(put, stablesOracle.latestAnswer().mul(assetOracleMultiplier))
-            : wdiv(call, spotPrice.mul(assetOracleMultiplier));
-
-        // Convert to 18 decimals
-        premium = premium.mul(assetOracleMultiplier);
-    }
-
-    /**
-     * @notice Calculates the premium of the provided option using Black-Scholes in stables
-     * @param st is the strike price of the option
-     * @param expiryTimestamp is the unix timestamp of expiry
-     * @param isPut is whether the option is a put option
-     * @param spotInNative is whether the spot price is denominated in native tokens
-     * @return premium for 100 contracts with 18 decimals
-     */
-    function getPremiumInStables(
-        uint256 st,
-        uint256 expiryTimestamp,
-        bool isPut,
-        bool spotInNative
-    ) external view returns (uint256 premium) {
-        require(
-            expiryTimestamp > block.timestamp,
-            "Expiry must be in the future!"
-        );
-
-        uint256 spotPrice = priceOracle.latestAnswer();
-
-        (uint256 sp, uint256 v, uint256 t) =
-            blackScholesParams(spotPrice, expiryTimestamp);
-
-        (uint256 call, uint256 put) = quoteAll(t, v, sp, st);
-
-        uint256 assetOracleMultiplier =
-            10 **
-                (
-                    uint256(18).sub(
-                        spotInNative ? nativeTokenOracleDecimals : stablesOracleDecimals
-                    )
-                );
-
-        uint256 assetPrice =
-            spotInNative ? nativeTokenOracle.latestAnswer() : stablesOracle.latestAnswer();
+            10 ** uint256(18).sub(assetDecimals);
 
         // Make option premium denominated in the underlying
         // asset for call vaults and USDC for put vaults
@@ -151,6 +122,90 @@ contract OptionsPremiumPricer is DSMath {
 
         // Convert to 18 decimals
         premium = premium.mul(assetOracleMultiplier);
+        premium = isPut ? put : call;
+    }
+
+    /**
+     * @notice Calculates the premium of the provided option using Black-Scholes in stables
+     * @notice ONLY used when spot oracle is denominated in USDC
+     * @param st is the strike price of the option
+     * @param expiryTimestamp is the unix timestamp of expiry
+     * @param isPut is whether the option is a put option
+     * @return premium for 100 contracts with 18 decimals
+     */
+    function getPremiumInStables(
+        uint256 st,
+        uint256 expiryTimestamp,
+        bool isPut
+    ) external view returns (uint256 premium) {
+        premium = _getPremium(
+            st, 
+            expiryTimestamp, 
+            priceOracle.latestAnswer(), 
+            stablesOracle.latestAnswer(), 
+            stablesOracleDecimals, 
+            isPut
+        );
+    }
+
+    /**
+     * @notice Calculates the premium of the provided option using Black-Scholes in stables
+     * @notice ONLY used when spot oracle is denominated in native tokens (e.g. ETH)
+     * @param st is the strike price of the option
+     * @param expiryTimestamp is the unix timestamp of expiry
+     * @param isPut is whether the option is a put option
+     * @return premium for 100 contracts with 18 decimals
+     */
+    function getPremiumNativePairsInStables(
+        uint256 st,
+        uint256 expiryTimestamp,
+        bool isPut
+    ) external view returns (uint256 premium) {
+        
+        // uint256 spotPrice = priceOracle.latestAnswer();
+        uint256 spotDecimals = priceOracleDecimals;
+
+        uint256 spotDecimalMultiplier = 10 ** spotDecimals.sub(8);
+
+        uint256 spotPrice = priceOracle.latestAnswer();
+        uint256 strike = st.div(spotDecimalMultiplier);
+        
+
+        // if (spotInNative) {
+        //     uint256 assetDecimals = priceOracleDecimals;
+        //     uint256 nativeTokenOracleMultiplier = 
+        //         10 ** assetDecimals
+        //             .sub(nativeTokenOracleDecimals);
+
+        //     spotPrice = wdiv(
+        //         spotPrice, 
+        //         nativeTokenOracle.latestAnswer().mul(nativeTokenOracleMultiplier)
+        //     );
+
+        //     spotPrice = spotPrice.div(10 ** assetDecimals.sub(nativeTokenOracleDecimals));
+        // }
+        
+        // (uint256 assetPrice, uint256 assetDecimals) = spotInNative
+        //     ? (nativeTokenOracle.latestAnswer(), nativeTokenOracleDecimals)
+        //     : (stablesOracle.latestAnswer(), stablesOracleDecimals);
+
+        // premium = _getPremium(
+        //     st, 
+        //     expiryTimestamp, 
+        //     spotPrice, 
+        //     assetPrice, 
+        //     assetDecimals, 
+        //     isPut
+        // );
+        premium = _getPremium(
+            strike, 
+            expiryTimestamp, 
+            spotPrice, 
+            stablesOracle.latestAnswer(), 
+            stablesOracleDecimals, 
+            isPut
+        );
+        // premium = st;
     }
 
     /**
