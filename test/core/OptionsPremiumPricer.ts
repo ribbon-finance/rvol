@@ -110,7 +110,7 @@ describe("OptionsPremiumPricer", () => {
         isPut
       );
 
-      console.log("\t"+
+      console.log(
         `premium is ${math.wmul(premium, underlyingPriceShifted).toString()}`
       );
 
@@ -146,12 +146,12 @@ describe("OptionsPremiumPricer", () => {
         true
       );
 
-      console.log("\t"+
+      console.log(
         `premiumCall is ${math
           .wmul(premiumCall, underlyingPriceShifted)
           .toString()}`
       );
-      console.log("\t"+`premiumPut is ${premiumPut}`);
+      console.log(`premiumPut is ${premiumPut}`);
 
       assert.equal(premiumPut.div(WAD).toString(), "413");
       assert.equal(
@@ -182,12 +182,12 @@ describe("OptionsPremiumPricer", () => {
         true
       );
 
-      console.log("\t"+
+      console.log(
         `premiumCall is ${math
           .wmul(premiumCall, underlyingPriceShifted)
           .toString()}`
       );
-      console.log("\t"+`premiumPut is ${premiumPut}`);
+      console.log(`premiumPut is ${premiumPut}`);
 
       assert.equal(premiumPut.div(WAD).toString(), "125");
       assert.equal(
@@ -222,12 +222,12 @@ describe("OptionsPremiumPricer", () => {
         isPut
       );
 
-      console.log("\t"+
+      console.log(
         `premiumSmall is ${math
           .wmul(premiumSmall, underlyingPriceShifted)
           .toString()}`
       );
-      console.log("\t"+
+      console.log(
         `premiumBig is ${math
           .wmul(premiumBig, underlyingPriceShifted)
           .toString()}`
@@ -265,10 +265,10 @@ describe("OptionsPremiumPricer", () => {
         !isPut
       );
 
-      console.log("\t"+
+      console.log(
         `premiumCall is ${math.wmul(premiumCall, underlyingPriceShifted)}`
       );
-      console.log("\t"+`premiumPut is ${premiumPut}`);
+      console.log(`premiumPut is ${premiumPut}`);
 
       assert.equal(
         math.wmul(premiumCall, underlyingPriceShifted).div(WAD).toString(),
@@ -308,13 +308,13 @@ describe("OptionsPremiumPricer", () => {
         isPut
       );
 
-      console.log("\t"+
+      console.log(
         `premiumSmallTimestamp is ${math.wmul(
           premiumSmallTimestamp,
           underlyingPriceShifted
         )}`
       );
-      console.log("\t"+
+      console.log(
         `premiumBigTimestamp is ${math.wmul(
           premiumBigTimestamp,
           underlyingPriceShifted
@@ -396,7 +396,7 @@ describe("OptionsPremiumPricer", () => {
         "getOptionDelta(uint256,uint256)"
       ](strikePrice, expiryTimestamp);
 
-      console.log("\t"+`delta is ${delta.toString()}`);
+      console.log(`delta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "3457");
       assert.isBelow(parseInt(delta.toString()), 5000);
@@ -412,7 +412,7 @@ describe("OptionsPremiumPricer", () => {
         "getOptionDelta(uint256,uint256)"
       ](strikePrice, expiryTimestamp);
 
-      console.log("\t"+`delta is ${delta.toString()}`);
+      console.log(`delta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "7560");
       assert.isAbove(parseInt(delta.toString()), 5000);
@@ -434,8 +434,8 @@ describe("OptionsPremiumPricer", () => {
         "getOptionDelta(uint256,uint256)"
       ](strikePriceLarger, expiryTimestamp);
 
-      console.log("\t"+`deltaSmall is ${delta.toString()}`);
-      console.log("\t"+`deltaLarger is ${deltaLarger.toString()}`);
+      console.log(`deltaSmall is ${delta.toString()}`);
+      console.log(`deltaLarger is ${deltaLarger.toString()}`);
 
       assert.equal(delta.toString(), "5455");
 
@@ -495,7 +495,7 @@ describe("OptionsPremiumPricer", () => {
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePrice, annualizedVol, expiryTimestamp);
 
-      console.log("\t"+`delta is ${delta.toString()}`);
+      console.log(`delta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "3457");
       assert.isBelow(parseInt(delta.toString()), 5000);
@@ -511,7 +511,7 @@ describe("OptionsPremiumPricer", () => {
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePrice, annualizedVol, expiryTimestamp);
 
-      console.log("\t"+`delta is ${delta.toString()}`);
+      console.log(`delta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "7560");
       assert.isAbove(parseInt(delta.toString()), 5000);
@@ -533,8 +533,8 @@ describe("OptionsPremiumPricer", () => {
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePriceLarger, annualizedVol, expiryTimestamp);
 
-      console.log("\t"+`deltaSmall is ${delta.toString()}`);
-      console.log("\t"+`deltaLarger is ${deltaLarger.toString()}`);
+      console.log(`deltaSmall is ${delta.toString()}`);
+      console.log(`deltaLarger is ${deltaLarger.toString()}`);
 
       assert.equal(delta.toString(), "5455");
 
@@ -646,7 +646,6 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
   let mockOracle: Contract;
   let optionsPremiumPricer: Contract;
   let testOptionsPremiumPricer: Contract;
-  let wethPriceOracle: Contract;
   let signer: SignerWithAddress;
   let underlyingPrice: BigNumber;
   let underlyingPriceShifted: BigNumber;
@@ -654,19 +653,10 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
   const PERIOD = 43200; // 12 hours
   const WINDOW_IN_DAYS = 7; // weekly vol data
   const WEEK = 604800; // 7 days
-  const WAD = BigNumber.from(10).pow(18);
-  const STABLE_DECIMALS = BigNumber.from(10).pow(6);
 
-  const ethusdcPool = "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8";
   const bzrxethPool = "0x4f25F309FbE94771e4F636D5D433A8f8Cd5C332B";
-  const perpusdcPool = "0xcD83055557536EFf25FD0eAfbC56e74a1b4260B3";
-  const uniusdcPool = "0xD0fC8bA7E267f2bc56044A7715A489d851dC6D78";
-  // const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-  // const usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
   const bzrxPriceOracleAddress = "0x8f7c7181ed1a2ba41cfc3f5d064ef91b67daef66";
-  const perpPriceOracleAddress = "0x8f7c7181ed1a2ba41cfc3f5d064ef91b67daef66";
-  const uniPriceOracleAddress = "0x553303d460ee0afb37edff9be42922d8ff63220e";
   const wethPriceOracleAddress = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
   const usdcPriceOracleAddress = "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6";
 
@@ -701,14 +691,9 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
       wethPriceOracleAddress
     );
 
-    wethPriceOracle = await ethers.getContractAt(
-      "IPriceOracle",
-      await optionsPremiumPricer.priceOracle()
-    );
-  
-    let oracleDecimals = 18
+    let oracleDecimals = 18;
     // underlyingPrice = (await optionsPremiumPricer.getUnderlyingPrice()).div(10**10);
-    underlyingPrice = await optionsPremiumPricer.getUnderlyingPrice()
+    underlyingPrice = await optionsPremiumPricer.getUnderlyingPrice();
     underlyingPriceShifted = (
       await optionsPremiumPricer.getUnderlyingPrice()
     ).mul(BigNumber.from(10).pow(18 - oracleDecimals));
@@ -729,11 +714,10 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
     });
 
     it("gets the correct premium", async function () {
-      const underlyingStrikeDiff = 200;
       // const strikePrice = underlyingPrice.add(
       //   BigNumber.from(underlyingStrikeDiff).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(110000).div(100000)
+      const strikePrice = underlyingPrice.mul(110000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
       const isPut = false;
 
@@ -750,11 +734,11 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
       );
 
       assert.isAbove(
-        parseInt(premiumInStables.toString()), 
+        parseInt(premiumInStables.toString()),
         parseInt(math.wmul(premium, underlyingPriceShifted).toString())
-      )
+      );
 
-      console.log("\t"+
+      console.log(
         `premium is ${premiumInStables.toString()}`
       );
 
@@ -777,7 +761,7 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
       // const strikePrice = underlyingPrice.add(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(110000).div(100000)
+      const strikePrice = underlyingPrice.mul(110000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const premiumCall = await optionsPremiumPricer.getPremiumNativePairsInStables(
@@ -791,9 +775,9 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
         true
       );
 
-      console.log("\t"+`premiumCall is ${premiumCall}`);
-      console.log("\t"+`premiumPut is ${premiumPut}`);
-      
+      console.log(`premiumCall is ${premiumCall}`);
+      console.log(`premiumPut is ${premiumPut}`);
+
       // assert.equal(premiumPut.div(STABLE_DECIMALS).toString(), "413");
       // assert.equal(
       //   math.wmul(premiumCall, underlyingPriceShifted).div(STABLE_DECIMALS).toString(),
@@ -810,7 +794,7 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
       // const strikePrice = underlyingPrice.sub(
       //   BigNumber.from(200).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(90000).div(100000)
+      const strikePrice = underlyingPrice.mul(90000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const premiumCall = await optionsPremiumPricer.getPremiumNativePairsInStables(
@@ -824,8 +808,8 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
         true
       );
 
-      console.log("\t"+`premiumCall is ${premiumCall}`);
-      console.log("\t"+`premiumPut is ${premiumPut}`);
+      console.log(`premiumCall is ${premiumCall}`);
+      console.log(`premiumPut is ${premiumPut}`);
 
       // assert.equal(premiumPut.div(STABLE_DECIMALS).toString(), "125");
       // assert.equal(
@@ -846,8 +830,8 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
       // const strikePriceBig = BigNumber.from(
       //   await optionsPremiumPricer.getUnderlyingPrice()
       // ).add(BigNumber.from(1000).mul(BigNumber.from(10).pow(8)));
-      const strikePriceSmall = underlyingPrice.mul(110000).div(100000)
-      const strikePriceBig = underlyingPrice.mul(120000).div(100000)
+      const strikePriceSmall = underlyingPrice.mul(110000).div(100000);
+      const strikePriceBig = underlyingPrice.mul(120000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
       const isPut = false;
 
@@ -862,10 +846,10 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
         isPut
       );
 
-      console.log("\t"+
+      console.log(
         `premiumSmall is ${premiumSmall}`
       );
-      console.log("\t"+
+      console.log(
         `premiumBig is ${premiumBig}`
       );
 
@@ -901,8 +885,8 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
         !isPut
       );
 
-      console.log("\t"+`premiumCall is ${premiumCall}`);
-      console.log("\t"+`premiumPut is ${premiumPut}`);
+      console.log(`premiumCall is ${premiumCall}`);
+      console.log(`premiumPut is ${premiumPut}`);
 
       // assert.equal(
       //   math.wmul(premiumCall, underlyingPriceShifted).div(STABLE_DECIMALS).toString(),
@@ -927,7 +911,7 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
       // const strikePrice = underlyingPrice.add(
       //   BigNumber.from(200).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(110000).div(100000)
+      const strikePrice = underlyingPrice.mul(110000).div(100000);
       const expiryTimestampSmall = (await time.now()).add(WEEK);
       const expiryTimestampBig = (await time.now()).add(2 * WEEK);
       const isPut = false;
@@ -943,10 +927,10 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
         isPut
       );
 
-      console.log("\t"+
+      console.log(
         `premiumSmallTimestamp is ${premiumSmallTimestamp}`
       );
-      console.log("\t"+
+      console.log(
         `premiumBigTimestamp is ${premiumBigTimestamp}`
       );
 
@@ -979,7 +963,7 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
       // const strikePrice = underlyingPrice.add(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(110000).div(100000)
+      const strikePrice = underlyingPrice.mul(110000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const { gas: callGas } = await testOptionsPremiumPricer.testGetPremiumNativePairsInStables(
@@ -1020,15 +1004,15 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
       // const strikePrice = underlyingPrice.add(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(110000).div(100000)
-      
+      const strikePrice = underlyingPrice.mul(110000).div(100000);
+
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const delta = await optionsPremiumPricer[
         "getOptionDeltaNativePairs(uint256,uint256)"
       ](strikePrice, expiryTimestamp);
 
-      console.log("\t"+`delta is ${delta.toString()}`);
+      console.log(`delta is ${delta.toString()}`);
 
       // assert.equal(delta.toString(), "3457"); Disabled for now
       assert.isBelow(parseInt(delta.toString()), 5000);
@@ -1038,14 +1022,14 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
       // const strikePrice = underlyingPrice.sub(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(90000).div(100000)
+      const strikePrice = underlyingPrice.mul(90000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const delta = await optionsPremiumPricer[
         "getOptionDeltaNativePairs(uint256,uint256)"
       ](strikePrice, expiryTimestamp);
 
-      console.log("\t"+`delta is ${delta.toString()}`);
+      console.log(`delta is ${delta.toString()}`);
 
       // assert.equal(delta.toString(), "7560"); Disabled for now
       assert.isAbove(parseInt(delta.toString()), 5000);
@@ -1056,7 +1040,7 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
       // const strikePriceLarger = underlyingPrice.sub(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePriceLarger = underlyingPrice.mul(90000).div(100000)
+      const strikePriceLarger = underlyingPrice.mul(90000).div(100000);
 
       const expiryTimestamp = (await time.now()).add(WEEK);
 
@@ -1068,8 +1052,8 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
         "getOptionDeltaNativePairs(uint256,uint256)"
       ](strikePriceLarger, expiryTimestamp);
 
-      console.log("\t"+`deltaSmall is ${delta.toString()}`);
-      console.log("\t"+`deltaLarger is ${deltaLarger.toString()}`);
+      console.log(`deltaSmall is ${delta.toString()}`);
+      console.log(`deltaLarger is ${deltaLarger.toString()}`);
 
       // assert.equal(delta.toString(), "5455"); Disabled for now
 
@@ -1084,7 +1068,7 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
       // const strikePriceLarger = underlyingPrice.sub(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePriceLarger = underlyingPrice.mul(90000).div(100000)
+      const strikePriceLarger = underlyingPrice.mul(90000).div(100000);
 
       const expiryTimestamp = (await time.now()).add(WEEK);
 
@@ -1124,14 +1108,14 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
       // const strikePrice = underlyingPrice.add(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(110000).div(100000)
+      const strikePrice = underlyingPrice.mul(110000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const delta = await optionsPremiumPricer[
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePrice, annualizedVol, expiryTimestamp);
 
-      console.log("\t"+`delta is ${delta.toString()}`);
+      console.log(`delta is ${delta.toString()}`);
 
       // assert.equal(delta.toString(), "3457"); Disabled for now
       assert.isBelow(parseInt(delta.toString()), 5000);
@@ -1141,14 +1125,14 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
       // const strikePrice = underlyingPrice.sub(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(90000).div(100000)
+      const strikePrice = underlyingPrice.mul(90000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const delta = await optionsPremiumPricer[
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePrice, annualizedVol, expiryTimestamp);
 
-      console.log("\t"+`delta is ${delta.toString()}`);
+      console.log(`delta is ${delta.toString()}`);
 
       // assert.equal(delta.toString(), "7560"); Disabled for now
       assert.isAbove(parseInt(delta.toString()), 5000);
@@ -1159,7 +1143,7 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
       // const strikePriceLarger = underlyingPrice.sub(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePriceLarger = underlyingPrice.mul(90000).div(100000)
+      const strikePriceLarger = underlyingPrice.mul(90000).div(100000);
 
       const expiryTimestamp = (await time.now()).add(WEEK);
 
@@ -1171,8 +1155,8 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePriceLarger, annualizedVol, expiryTimestamp);
 
-      console.log("\t"+`deltaSmall is ${delta.toString()}`);
-      console.log("\t"+`deltaLarger is ${deltaLarger.toString()}`);
+      console.log(`deltaSmall is ${delta.toString()}`);
+      console.log(`deltaLarger is ${deltaLarger.toString()}`);
 
       // assert.equal(delta.toString(), "5455"); Disabled for now
 
@@ -1187,7 +1171,7 @@ describe("OptionsPremiumPricer (Spot-Native)", () => {
       // const strikePriceLarger = underlyingPrice.sub(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePriceLarger = underlyingPrice.mul(90000).div(100000)
+      const strikePriceLarger = underlyingPrice.mul(90000).div(100000);
 
       const expiryTimestamp = (await time.now()).add(WEEK);
 
@@ -1245,7 +1229,6 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
   let mockOracle: Contract;
   let optionsPremiumPricer: Contract;
   let testOptionsPremiumPricer: Contract;
-  let wethPriceOracle: Contract;
   let signer: SignerWithAddress;
   let underlyingPrice: BigNumber;
   let underlyingPriceShifted: BigNumber;
@@ -1253,18 +1236,9 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
   const PERIOD = 43200; // 12 hours
   const WINDOW_IN_DAYS = 7; // weekly vol data
   const WEEK = 604800; // 7 days
-  const WAD = BigNumber.from(10).pow(18);
-  const STABLE_DECIMALS = BigNumber.from(10).pow(6);
 
-  // const ethusdcPool = "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8";
-  // const bzrxethPool = "0x4f25F309FbE94771e4F636D5D433A8f8Cd5C332B";
-  // const perpusdcPool = "0xcD83055557536EFf25FD0eAfbC56e74a1b4260B3";
   const uniusdcPool = "0xD0fC8bA7E267f2bc56044A7715A489d851dC6D78";
-  // const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-  // const usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
-  // const bzrxPriceOracleAddress = "0x8f7c7181ed1a2ba41cfc3f5d064ef91b67daef66";
-  // const perpPriceOracleAddress = "0x8f7c7181ed1a2ba41cfc3f5d064ef91b67daef66";
   const uniPriceOracleAddress = "0x553303d460ee0afb37edff9be42922d8ff63220e";
   const wethPriceOracleAddress = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
   const usdcPriceOracleAddress = "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6";
@@ -1300,12 +1274,7 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       wethPriceOracleAddress
     );
 
-    wethPriceOracle = await ethers.getContractAt(
-      "IPriceOracle",
-      await optionsPremiumPricer.priceOracle()
-    );
-  
-    let oracleDecimals = 8
+    let oracleDecimals = 8;
     underlyingPrice = await optionsPremiumPricer.getUnderlyingPrice();
     underlyingPriceShifted = (
       await optionsPremiumPricer.getUnderlyingPrice()
@@ -1335,7 +1304,7 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       // const strikePrice = underlyingPrice.add(
       //   BigNumber.from(underlyingStrikeDiff).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(110000).div(100000)
+      const strikePrice = underlyingPrice.mul(110000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
       const isPut = false;
 
@@ -1352,11 +1321,11 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       );
 
       assert.isAbove(
-        parseInt(premiumInStables.toString()), 
+        parseInt(premiumInStables.toString()),
         parseInt(math.wmul(premium, underlyingPriceShifted).toString())
-      )
+      );
 
-      console.log("\t"+
+      console.log(
         `premium is ${math.wmul(premium, underlyingPriceShifted).toString()}`
       );
 
@@ -1379,7 +1348,7 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       // const strikePrice = underlyingPrice.add(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(110000).div(100000)
+      const strikePrice = underlyingPrice.mul(110000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const premiumCall = await optionsPremiumPricer.getPremiumInStables(
@@ -1393,9 +1362,9 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
         true
       );
 
-      console.log("\t"+`premiumCall is ${premiumCall}`);
-      console.log("\t"+`premiumPut is ${premiumPut}`);
-      
+      console.log(`premiumCall is ${premiumCall}`);
+      console.log(`premiumPut is ${premiumPut}`);
+
       // assert.equal(premiumPut.div(STABLE_DECIMALS).toString(), "413");
       // assert.equal(
       //   math.wmul(premiumCall, underlyingPriceShifted).div(STABLE_DECIMALS).toString(),
@@ -1412,7 +1381,7 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       // const strikePrice = underlyingPrice.sub(
       //   BigNumber.from(200).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(90000).div(100000)
+      const strikePrice = underlyingPrice.mul(90000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const premiumCall = await optionsPremiumPricer.getPremiumInStables(
@@ -1426,8 +1395,8 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
         true
       );
 
-      console.log("\t"+`premiumCall is ${premiumCall}`);
-      console.log("\t"+`premiumPut is ${premiumPut}`);
+      console.log(`premiumCall is ${premiumCall}`);
+      console.log(`premiumPut is ${premiumPut}`);
 
       // assert.equal(premiumPut.div(STABLE_DECIMALS).toString(), "125");
       // assert.equal(
@@ -1448,8 +1417,8 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       // const strikePriceBig = BigNumber.from(
       //   await optionsPremiumPricer.getUnderlyingPrice()
       // ).add(BigNumber.from(1000).mul(BigNumber.from(10).pow(8)));
-      const strikePriceSmall = underlyingPrice.mul(110000).div(100000)
-      const strikePriceBig = underlyingPrice.mul(120000).div(100000)
+      const strikePriceSmall = underlyingPrice.mul(110000).div(100000);
+      const strikePriceBig = underlyingPrice.mul(120000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
       const isPut = false;
 
@@ -1464,8 +1433,8 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
         isPut
       );
 
-      console.log("\t"+`premiumSmall is ${premiumSmall}`);
-      console.log("\t"+`premiumBig is ${premiumSmall}`);
+      console.log(`premiumSmall is ${premiumSmall}`);
+      console.log(`premiumBig is ${premiumSmall}`);
 
       // assert.equal(
       //   math.wmul(premiumSmall, underlyingPriceShifted).div(STABLE_DECIMALS).toString(),
@@ -1499,8 +1468,8 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
         !isPut
       );
 
-      console.log("\t"+`premiumCall is ${premiumPut}`);
-      console.log("\t"+`premiumPut is ${premiumPut}`);
+      console.log(`premiumCall is ${premiumPut}`);
+      console.log(`premiumPut is ${premiumPut}`);
 
       // assert.equal(
       //   math.wmul(premiumCall, underlyingPriceShifted).div(STABLE_DECIMALS).toString(),
@@ -1525,7 +1494,7 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       // const strikePrice = underlyingPrice.add(
       //   BigNumber.from(200).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(110000).div(100000)
+      const strikePrice = underlyingPrice.mul(110000).div(100000);
       const expiryTimestampSmall = (await time.now()).add(WEEK);
       const expiryTimestampBig = (await time.now()).add(2 * WEEK);
       const isPut = false;
@@ -1541,10 +1510,10 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
         isPut
       );
 
-      console.log("\t"+
+      console.log(
         `premiumSmallTimestamp is ${premiumSmallTimestamp}`
       );
-      console.log("\t"+
+      console.log(
         `premiumBigTimestamp is ${premiumBigTimestamp}`
       );
 
@@ -1577,7 +1546,7 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       // const strikePrice = underlyingPrice.add(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(110000).div(100000)
+      const strikePrice = underlyingPrice.mul(110000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const { gas: callGas } = await testOptionsPremiumPricer.testGetPremiumInStables(
@@ -1618,15 +1587,15 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       // const strikePrice = underlyingPrice.add(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(110000).div(100000)
-      
+      const strikePrice = underlyingPrice.mul(110000).div(100000);
+
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const delta = await optionsPremiumPricer[
         "getOptionDelta(uint256,uint256)"
       ](strikePrice, expiryTimestamp);
 
-      console.log("\t"+`delta is ${delta.toString()}`);
+      console.log(`delta is ${delta.toString()}`);
 
       // assert.equal(delta.toString(), "3457"); Disabled for now
       assert.isBelow(parseInt(delta.toString()), 5000);
@@ -1636,14 +1605,14 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       // const strikePrice = underlyingPrice.sub(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(90000).div(100000)
+      const strikePrice = underlyingPrice.mul(90000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const delta = await optionsPremiumPricer[
         "getOptionDelta(uint256,uint256)"
       ](strikePrice, expiryTimestamp);
 
-      console.log("\t"+`delta is ${delta.toString()}`);
+      console.log(`delta is ${delta.toString()}`);
 
       // assert.equal(delta.toString(), "7560"); Disabled for now
       assert.isAbove(parseInt(delta.toString()), 5000);
@@ -1654,7 +1623,7 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       // const strikePriceLarger = underlyingPrice.sub(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePriceLarger = underlyingPrice.mul(90000).div(100000)
+      const strikePriceLarger = underlyingPrice.mul(90000).div(100000);
 
       const expiryTimestamp = (await time.now()).add(WEEK);
 
@@ -1666,8 +1635,8 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
         "getOptionDelta(uint256,uint256)"
       ](strikePriceLarger, expiryTimestamp);
 
-      console.log("\t"+`deltaSmall is ${delta.toString()}`);
-      console.log("\t"+`deltaLarger is ${deltaLarger.toString()}`);
+      console.log(`deltaSmall is ${delta.toString()}`);
+      console.log(`deltaLarger is ${deltaLarger.toString()}`);
 
       // assert.equal(delta.toString(), "5455"); Disabled for now
 
@@ -1682,7 +1651,7 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       // const strikePriceLarger = underlyingPrice.sub(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePriceLarger = underlyingPrice.mul(90000).div(100000)
+      const strikePriceLarger = underlyingPrice.mul(90000).div(100000);
 
       const expiryTimestamp = (await time.now()).add(WEEK);
 
@@ -1722,14 +1691,14 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       // const strikePrice = underlyingPrice.add(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(110000).div(100000)
+      const strikePrice = underlyingPrice.mul(110000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const delta = await optionsPremiumPricer[
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePrice, annualizedVol, expiryTimestamp);
 
-      console.log("\t"+`delta is ${delta.toString()}`);
+      console.log(`delta is ${delta.toString()}`);
 
       // assert.equal(delta.toString(), "3457"); Disabled for now
       assert.isBelow(parseInt(delta.toString()), 5000);
@@ -1739,14 +1708,14 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       // const strikePrice = underlyingPrice.sub(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePrice = underlyingPrice.mul(90000).div(100000)
+      const strikePrice = underlyingPrice.mul(90000).div(100000);
       const expiryTimestamp = (await time.now()).add(WEEK);
 
       const delta = await optionsPremiumPricer[
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePrice, annualizedVol, expiryTimestamp);
 
-      console.log("\t"+`delta is ${delta.toString()}`);
+      console.log(`delta is ${delta.toString()}`);
 
       // assert.equal(delta.toString(), "7560"); Disabled for now
       assert.isAbove(parseInt(delta.toString()), 5000);
@@ -1757,7 +1726,7 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       // const strikePriceLarger = underlyingPrice.sub(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePriceLarger = underlyingPrice.mul(90000).div(100000)
+      const strikePriceLarger = underlyingPrice.mul(90000).div(100000);
 
       const expiryTimestamp = (await time.now()).add(WEEK);
 
@@ -1769,8 +1738,8 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePriceLarger, annualizedVol, expiryTimestamp);
 
-      console.log("\t"+`deltaSmall is ${delta.toString()}`);
-      console.log("\t"+`deltaLarger is ${deltaLarger.toString()}`);
+      console.log(`deltaSmall is ${delta.toString()}`);
+      console.log(`deltaLarger is ${deltaLarger.toString()}`);
 
       // assert.equal(delta.toString(), "5455"); Disabled for now
 
@@ -1785,7 +1754,7 @@ describe("OptionsPremiumPricer (Spot-Stables)", () => {
       // const strikePriceLarger = underlyingPrice.sub(
       //   BigNumber.from(300).mul(BigNumber.from(10).pow(8))
       // );
-      const strikePriceLarger = underlyingPrice.mul(90000).div(100000)
+      const strikePriceLarger = underlyingPrice.mul(90000).div(100000);
 
       const expiryTimestamp = (await time.now()).add(WEEK);
 

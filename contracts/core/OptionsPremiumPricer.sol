@@ -78,26 +78,27 @@ contract OptionsPremiumPricer is DSMath {
         bool isPut
     ) external view returns (uint256 premium) {
         uint256 spotPrice = priceOracle.latestAnswer();
-        (uint256 assetPrice, uint256 assetDecimals) = isPut
-            ? (stablesOracle.latestAnswer(), stablesOracleDecimals)
-            : (spotPrice, priceOracleDecimals);
+        (uint256 assetPrice, uint256 assetDecimals) =
+            isPut
+                ? (stablesOracle.latestAnswer(), stablesOracleDecimals)
+                : (spotPrice, priceOracleDecimals);
 
         premium = _getPremium(
-            st, 
-            expiryTimestamp, 
-            spotPrice, 
-            assetPrice, 
-            assetDecimals, 
+            st,
+            expiryTimestamp,
+            spotPrice,
+            assetPrice,
+            assetDecimals,
             isPut
         );
     }
 
     function _getPremium(
-        uint256 st, 
+        uint256 st,
         uint256 expiryTimestamp,
         uint256 spotPrice,
         uint256 assetPrice,
-        uint256 assetDecimals, 
+        uint256 assetDecimals,
         bool isPut
     ) internal view returns (uint256 premium) {
         require(
@@ -111,8 +112,7 @@ contract OptionsPremiumPricer is DSMath {
         (uint256 call, uint256 put) = quoteAll(t, v, sp, st);
 
         // Multiplier to convert oracle latestAnswer to 18 decimals
-        uint256 assetOracleMultiplier =
-            10 ** uint256(18).sub(assetDecimals);
+        uint256 assetOracleMultiplier = 10**uint256(18).sub(assetDecimals);
 
         // Make option premium denominated in the underlying
         // asset for call vaults and USDC for put vaults
@@ -138,11 +138,11 @@ contract OptionsPremiumPricer is DSMath {
         bool isPut
     ) external view returns (uint256 premium) {
         premium = _getPremium(
-            st, 
-            expiryTimestamp, 
-            priceOracle.latestAnswer(), 
-            stablesOracle.latestAnswer(), 
-            stablesOracleDecimals, 
+            st,
+            expiryTimestamp,
+            priceOracle.latestAnswer(),
+            stablesOracle.latestAnswer(),
+            stablesOracleDecimals,
             isPut
         );
     }
@@ -160,24 +160,25 @@ contract OptionsPremiumPricer is DSMath {
         uint256 expiryTimestamp,
         bool isPut
     ) external view returns (uint256 premium) {
-        uint256 oracleMultiplier = 10 ** uint256(18).sub(8);
+        uint256 oracleMultiplier = 10**uint256(18).sub(8);
 
         uint256 nativeTokenPrice = nativeTokenOracle.latestAnswer();
-        uint256 strikeInStables = wmul(
-            st, 
-            nativeTokenPrice.mul(oracleMultiplier)
-        ).div(oracleMultiplier);
-        uint256 spotInStables = wmul(
-            priceOracle.latestAnswer(), 
-            nativeTokenPrice.mul(oracleMultiplier)
-        );
-    
+        uint256 strikeInStables =
+            wmul(st, nativeTokenPrice.mul(oracleMultiplier)).div(
+                oracleMultiplier
+            );
+        uint256 spotInStables =
+            wmul(
+                priceOracle.latestAnswer(),
+                nativeTokenPrice.mul(oracleMultiplier)
+            );
+
         premium = _getPremium(
-            strikeInStables, 
-            expiryTimestamp, 
-            spotInStables, 
-            stablesOracle.latestAnswer(), 
-            stablesOracleDecimals, 
+            strikeInStables,
+            expiryTimestamp,
+            spotInStables,
+            stablesOracle.latestAnswer(),
+            stablesOracleDecimals,
             isPut
         );
     }
@@ -204,19 +205,14 @@ contract OptionsPremiumPricer is DSMath {
         );
 
         uint256 spotPrice = priceOracle.latestAnswer();
-        (uint256 sp, uint256 v,) =
+        (uint256 sp, uint256 v, ) =
             blackScholesParams(spotPrice, expiryTimestamp);
 
-        delta = _getOptionDelta(
-            sp,
-            st,
-            v,
-            expiryTimestamp
-        );
+        delta = _getOptionDelta(sp, st, v, expiryTimestamp);
     }
 
     /**
-     * @notice Calculates the option's delta 
+     * @notice Calculates the option's delta
      * @notice ONLY used when spot oracle is denominated in native tokens (e.g. ETH)
      * @param st is the strike price of the option
      * @param expiryTimestamp is the unix timestamp of expiry
@@ -232,17 +228,11 @@ contract OptionsPremiumPricer is DSMath {
             expiryTimestamp > block.timestamp,
             "Expiry must be in the future!"
         );
-        
-        uint256 sp = priceOracle.latestAnswer();
-        (, uint256 v,) =
-            blackScholesParams(sp, expiryTimestamp);
 
-        delta = _getOptionDelta(
-            sp,
-            st,
-            v,
-            expiryTimestamp
-        );
+        uint256 sp = priceOracle.latestAnswer();
+        (, uint256 v, ) = blackScholesParams(sp, expiryTimestamp);
+
+        delta = _getOptionDelta(sp, st, v, expiryTimestamp);
     }
 
     /**
@@ -268,16 +258,11 @@ contract OptionsPremiumPricer is DSMath {
             "Expiry must be in the future!"
         );
 
-        delta = _getOptionDelta(
-            sp,
-            st,
-            v,
-            expiryTimestamp
-        );
+        delta = _getOptionDelta(sp, st, v, expiryTimestamp);
     }
 
     /**
-     * @notice Internal function to calculate the option's delta 
+     * @notice Internal function to calculate the option's delta
      * @param st is the strike price of the option
      * @param expiryTimestamp is the unix timestamp of expiry
      * @return delta for given option. 4 decimals (ex: 8100 = 0.81 delta) as this is what strike selection
@@ -288,10 +273,7 @@ contract OptionsPremiumPricer is DSMath {
         uint256 st,
         uint256 v,
         uint256 expiryTimestamp
-    )   internal
-        view
-        returns (uint256 delta)
-    {
+    ) internal view returns (uint256 delta) {
         // days until expiry
         uint256 t = expiryTimestamp.sub(block.timestamp).div(1 days);
 
