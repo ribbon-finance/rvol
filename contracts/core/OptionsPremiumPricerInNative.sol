@@ -76,7 +76,7 @@ contract OptionsPremiumPricerInNative is DSMath {
         uint256 expiryTimestamp,
         bool isPut
     ) external view returns (uint256 premium) {
-        uint256 sp = priceOracle.latestAnswer();
+        uint256 sp = _getUnderlyingInUSD();
 
         (uint256 assetPrice, uint256 assetDecimals) =
             isPut
@@ -105,9 +105,21 @@ contract OptionsPremiumPricerInNative is DSMath {
         uint256 expiryTimestamp,
         bool isPut
     ) external view returns (uint256 premium) {
+        // uint256 sp = wmul(
+        //     priceOracle.latestAnswer(),
+        //     nativeTokenOracle.latestAnswer().mul(10**10)
+        // );
+
+        // // The input strike price is in token/native pair. Convert
+        // // into token/usd pair and adjust the decimals to 8
+        // st = wmul(st, nativeTokenPrice.mul(10**10)).div(10**10);
+
+        // The input spot price is in token/native pair. Convert
+        // into token/usd pair with 18 decimals
+
         premium = _getPremium(
             st,
-            priceOracle.latestAnswer(),
+            _getUnderlyingInUSD(),
             expiryTimestamp,
             stablesOracle.latestAnswer(),
             stablesOracleDecimals,
@@ -137,15 +149,15 @@ contract OptionsPremiumPricerInNative is DSMath {
             expiryTimestamp > block.timestamp,
             "Expiry must be in the future!"
         );
-        uint256 nativeTokenPrice = nativeTokenOracle.latestAnswer();
+        // uint256 nativeTokenPrice = nativeTokenOracle.latestAnswer();
 
-        // The input strike price is in token/native pair. Convert
-        // into token/usd pair and adjust the decimals to 8
-        st = wmul(st, nativeTokenPrice.mul(10**10)).div(10**10);
+        // // // The input strike price is in token/native pair. Convert
+        // // // into token/usd pair and adjust the decimals to 8
+        // // st = wmul(st, nativeTokenPrice.mul(10**10)).div(10**10);
 
-        // The input spot price is in token/native pair. Convert
-        // into token/usd pair with 18 decimals
-        sp = wmul(sp, nativeTokenPrice.mul(10**10));
+        // // The input spot price is in token/native pair. Convert
+        // // into token/usd pair with 18 decimals
+        // sp = wmul(sp, nativeTokenPrice.mul(10**10));
 
         uint256 v;
         uint256 t;
@@ -186,8 +198,9 @@ contract OptionsPremiumPricerInNative is DSMath {
             expiryTimestamp > block.timestamp,
             "Expiry must be in the future!"
         );
-        uint256 sp = priceOracle.latestAnswer();
-        (, uint256 v, ) = blackScholesParams(sp, expiryTimestamp);
+        uint256 spotPrice = _getUnderlyingInUSD();
+        (uint256 sp, uint256 v, ) =
+            blackScholesParams(spotPrice, expiryTimestamp);
 
         delta = _getOptionDelta(sp, st, v, expiryTimestamp);
     }
@@ -364,27 +377,18 @@ contract OptionsPremiumPricerInNative is DSMath {
      * @notice Calculates the underlying assets price
      */
     function getUnderlyingPrice() external view returns (uint256 price) {
-        price = priceOracle.latestAnswer();
+        price = _getUnderlyingInUSD().div(10**10);
     }
 
     /**
-     * @notice Calculates the underlying assets price
+     * @notice Convert underlying price from native token price to USD
      */
-    function getStablePrice() external view returns (uint256 price) {
-        price = stablesOracle.latestAnswer();
-    }
-
-    /**
-     * @notice Calculates the underlying assets price
-     */
-    function getNativeTokenPrice() external view returns (uint256 price) {
-        price = nativeTokenOracle.latestAnswer();
-    }
-
-    /**
-     * @notice Calculates the underlying assets price
-     */
-    function getPriceDecimals() external view returns (uint256 price) {
-        price = priceOracleDecimals;
+    function _getUnderlyingInUSD() internal view returns (uint256 price) {
+        // The underlying price is in token/native pair. Convert
+        // into token/usd pair with 8 decimals
+        price = wmul(
+            priceOracle.latestAnswer(),
+            nativeTokenOracle.latestAnswer().mul(10**10)
+        );
     }
 }

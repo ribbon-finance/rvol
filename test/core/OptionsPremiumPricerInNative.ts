@@ -60,7 +60,7 @@ describe("OptionsPremiumPricerInNative", () => {
       wethPriceOracleAddress
     );
 
-    let oracleDecimals = 18;
+    let oracleDecimals = 8;
     underlyingPrice = await optionsPremiumPricer.getUnderlyingPrice();
     underlyingPriceShifted = (
       await optionsPremiumPricer.getUnderlyingPrice()
@@ -99,7 +99,7 @@ describe("OptionsPremiumPricerInNative", () => {
 
       assert.equal(
         math.wmul(premium, underlyingPriceShifted).toString(),
-        "1287280000000000"
+        "1287280691200000"
       );
 
       assert.isAbove(
@@ -133,7 +133,7 @@ describe("OptionsPremiumPricerInNative", () => {
       assert.equal(premiumPut.toString(), "31495280000000000");
       assert.equal(
         math.wmul(premiumCall, underlyingPriceShifted).toString(),
-        "1287280000000000"
+        "1287280691200000"
       );
 
       assert.isAbove(
@@ -167,7 +167,7 @@ describe("OptionsPremiumPricerInNative", () => {
       assert.equal(premiumPut.toString(), "883660000000000");
       assert.equal(
         math.wmul(premiumCall, underlyingPriceShifted).toString(),
-        "31091660000000000"
+        "31091659520000000"
       );
 
       assert.isAbove(
@@ -206,11 +206,11 @@ describe("OptionsPremiumPricerInNative", () => {
 
       assert.equal(
         math.wmul(premiumSmall, underlyingPriceShifted).toString(),
-        "1287280000000000"
+        "1287280691200000"
       );
       assert.equal(
         math.wmul(premiumBig, underlyingPriceShifted).toString(),
-        "79320000000000"
+        "79320166400000"
       );
 
       assert.isAbove(
@@ -243,13 +243,13 @@ describe("OptionsPremiumPricerInNative", () => {
 
       assert.equal(
         math.wmul(premiumCall, underlyingPriceShifted).toString(),
-        "9322370000000000"
+        "9322370048000000"
       );
       assert.equal(premiumPut.toString(), "9322370000000000");
 
       assert.equal(
-        parseInt(premiumPut.toString()),
-        parseInt(math.wmul(premiumCall, underlyingPriceShifted).toString())
+        parseInt(premiumPut.div(10 ** 10).toString()),
+        parseInt(math.wmul(premiumCall, underlyingPriceShifted).div(10 ** 10).toString())
       );
     });
 
@@ -287,13 +287,13 @@ describe("OptionsPremiumPricerInNative", () => {
         math
           .wmul(premiumSmallTimestamp, underlyingPriceShifted)
           .toString(),
-        "1287280000000000"
+        "1287280691200000"
       );
       assert.equal(
         math
           .wmul(premiumBigTimestamp, underlyingPriceShifted)
           .toString(),
-        "3667200000000000"
+        "3667199846400000"
       );
 
       assert.isBelow(
@@ -361,8 +361,8 @@ describe("OptionsPremiumPricerInNative", () => {
       );
 
       assert.equal(
-        parseInt(premiumInStables.toString()),
-        parseInt(math.wmul(premium, underlyingPriceShifted).toString())
+        parseInt(premiumInStables.div(10 ** 10).toString()),
+        parseInt(math.wmul(premium, underlyingPriceShifted).div(10 ** 10).toString())
       );
 
       console.log(
@@ -371,7 +371,7 @@ describe("OptionsPremiumPricerInNative", () => {
 
       assert.equal(
         math.wmul(premium, underlyingPriceShifted).toString(),
-        "1287280000000000"
+        "1287280691200000"
       );
 
       assert.isAbove(
