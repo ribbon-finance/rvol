@@ -58,7 +58,6 @@ contract OptionsPremiumPricerInNative is DSMath {
 
     /**
      * @notice Calculates the premium of the provided option using Black-Scholes
-     * @notice ONLY use when spot oracle is denominated in USDC
      * References for Black-Scholes:
        https://www.macroption.com/black-scholes-formula/
        https://www.investopedia.com/terms/b/blackscholes.asp
@@ -77,17 +76,17 @@ contract OptionsPremiumPricerInNative is DSMath {
         uint256 expiryTimestamp,
         bool isPut
     ) external view returns (uint256 premium) {
-        uint256 spotPrice = priceOracle.latestAnswer();
+        uint256 sp = priceOracle.latestAnswer();
 
         (uint256 assetPrice, uint256 assetDecimals) =
             isPut
                 ? (stablesOracle.latestAnswer(), stablesOracleDecimals)
-                : (spotPrice.div(10**10), priceOracleDecimals.sub(10));
+                : (sp.div(10**10), priceOracleDecimals.sub(10));
 
         premium = _getPremium(
             st,
+            sp,
             expiryTimestamp,
-            spotPrice,
             assetPrice,
             assetDecimals,
             isPut
@@ -96,7 +95,6 @@ contract OptionsPremiumPricerInNative is DSMath {
 
     /**
      * @notice Calculates the premium of the provided option using Black-Scholes in stables
-     * @notice ONLY used when spot oracle is denominated in USDC
      * @param st is the strike price of the option
      * @param expiryTimestamp is the unix timestamp of expiry
      * @param isPut is whether the option is a put option
@@ -109,8 +107,8 @@ contract OptionsPremiumPricerInNative is DSMath {
     ) external view returns (uint256 premium) {
         premium = _getPremium(
             st,
-            expiryTimestamp,
             priceOracle.latestAnswer(),
+            expiryTimestamp,
             stablesOracle.latestAnswer(),
             stablesOracleDecimals,
             isPut
@@ -120,8 +118,8 @@ contract OptionsPremiumPricerInNative is DSMath {
     /**
      * @notice Internal function to calculate the premium of the provided option using Black-Scholes
      * @param st is the strike price of the option
+     * @param sp is the spot price of the underlying asset
      * @param expiryTimestamp is the unix timestamp of expiry
-     * @param spotPrice is the spot price of the underlying asset
      * @param assetPrice is the denomination asset for the options
      * @param assetDecimals is the decimals points of the denomination asset price
      * @param isPut is whether the option is a put option
@@ -129,8 +127,8 @@ contract OptionsPremiumPricerInNative is DSMath {
      */
     function _getPremium(
         uint256 st,
+        uint256 sp,
         uint256 expiryTimestamp,
-        uint256 spotPrice,
         uint256 assetPrice,
         uint256 assetDecimals,
         bool isPut
@@ -139,28 +137,19 @@ contract OptionsPremiumPricerInNative is DSMath {
             expiryTimestamp > block.timestamp,
             "Expiry must be in the future!"
         );
-        // Multiplier to switch between 8 decimals and 18 decimals
-        // uint256 oracleMultiplier = 10**uint256(18).sub(8);
+        uint256 nativeTokenPrice = nativeTokenOracle.latestAnswer();
 
-        // uint256 nativeTokenPrice = nativeTokenOracle.latestAnswer();
-
-        // The given strike price is in token/native pair. Convert
+        // The input strike price is in token/native pair. Convert
         // into token/usd pair and adjust the decimals to 8
-        st = wmul(
-            st,
-            nativeTokenOracle.latestAnswer().mul(10**uint256(18).sub(8))
-        )
-            .div(10**uint256(18).sub(8));
+        st = wmul(st, nativeTokenPrice.mul(10**10)).div(10**10);
 
-        // The given spot price is in token/native pair. Convert
-        // into token/usd pair and adjust the decimals to 8
-        spotPrice = wmul(
-            spotPrice,
-            nativeTokenOracle.latestAnswer().mul(10**uint256(18).sub(8))
-        );
+        // The input spot price is in token/native pair. Convert
+        // into token/usd pair with 18 decimals
+        sp = wmul(sp, nativeTokenPrice.mul(10**10));
 
-        (uint256 sp, uint256 v, uint256 t) =
-            blackScholesParams(spotPrice, expiryTimestamp);
+        uint256 v;
+        uint256 t;
+        (sp, v, t) = blackScholesParams(sp, expiryTimestamp);
 
         (uint256 call, uint256 put) = quoteAll(t, v, sp, st);
 
@@ -197,41 +186,11 @@ contract OptionsPremiumPricerInNative is DSMath {
             expiryTimestamp > block.timestamp,
             "Expiry must be in the future!"
         );
-
-        // uint256 spotPrice = priceOracle.latestAnswer();
-        // (uint256 sp, uint256 v, ) =
-        //     blackScholesParams(spotPrice, expiryTimestamp);
-
-        // delta = _getOptionDelta(sp, st, v, expiryTimestamp);
         uint256 sp = priceOracle.latestAnswer();
         (, uint256 v, ) = blackScholesParams(sp, expiryTimestamp);
 
         delta = _getOptionDelta(sp, st, v, expiryTimestamp);
     }
-
-    // /**
-    //  * @notice Calculates the option's delta
-    //  * @notice ONLY used when spot oracle is denominated in native tokens (e.g. ETH)
-    //  * @param st is the strike price of the option
-    //  * @param expiryTimestamp is the unix timestamp of expiry
-    //  * @return delta for given option. 4 decimals (ex: 8100 = 0.81 delta) as this is what strike selection
-    //  * module recognizes
-    //  */
-    // function getOptionDeltaNativePairs(uint256 st, uint256 expiryTimestamp)
-    //     external
-    //     view
-    //     returns (uint256 delta)
-    // {
-    //     require(
-    //         expiryTimestamp > block.timestamp,
-    //         "Expiry must be in the future!"
-    //     );
-
-    //     uint256 sp = priceOracle.latestAnswer();
-    //     (, uint256 v, ) = blackScholesParams(sp, expiryTimestamp);
-
-    //     delta = _getOptionDelta(sp, st, v, expiryTimestamp);
-    // }
 
     /**
      * @notice Calculates the option's delta

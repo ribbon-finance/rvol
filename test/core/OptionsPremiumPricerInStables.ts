@@ -109,7 +109,7 @@ describe("OptionsPremiumPricerInStables", () => {
       );
 
       console.log(
-        `premium is ${math.wmul(premium, underlyingPriceShifted).toString()}`
+        `\tpremium is ${math.wmul(premium, underlyingPriceShifted).toString()}`
       );
 
       assert.equal(
@@ -145,11 +145,11 @@ describe("OptionsPremiumPricerInStables", () => {
       );
 
       console.log(
-        `premiumCall is ${math
+        `\tpremiumCall is ${math
           .wmul(premiumCall, underlyingPriceShifted)
           .toString()}`
       );
-      console.log(`premiumPut is ${premiumPut}`);
+      console.log(`\tpremiumPut is ${premiumPut}`);
 
       assert.equal(premiumPut.div(WAD).toString(), "413");
       assert.equal(
@@ -181,11 +181,11 @@ describe("OptionsPremiumPricerInStables", () => {
       );
 
       console.log(
-        `premiumCall is ${math
+        `\tpremiumCall is ${math
           .wmul(premiumCall, underlyingPriceShifted)
           .toString()}`
       );
-      console.log(`premiumPut is ${premiumPut}`);
+      console.log(`\tpremiumPut is ${premiumPut}`);
 
       assert.equal(premiumPut.div(WAD).toString(), "125");
       assert.equal(
@@ -221,12 +221,12 @@ describe("OptionsPremiumPricerInStables", () => {
       );
 
       console.log(
-        `premiumSmall is ${math
+        `\tpremiumSmall is ${math
           .wmul(premiumSmall, underlyingPriceShifted)
           .toString()}`
       );
       console.log(
-        `premiumBig is ${math
+        `\tpremiumBig is ${math
           .wmul(premiumBig, underlyingPriceShifted)
           .toString()}`
       );
@@ -264,9 +264,9 @@ describe("OptionsPremiumPricerInStables", () => {
       );
 
       console.log(
-        `premiumCall is ${math.wmul(premiumCall, underlyingPriceShifted)}`
+        `\tpremiumCall is ${math.wmul(premiumCall, underlyingPriceShifted)}`
       );
-      console.log(`premiumPut is ${premiumPut}`);
+      console.log(`\tpremiumPut is ${premiumPut}`);
 
       assert.equal(
         math.wmul(premiumCall, underlyingPriceShifted).div(WAD).toString(),
@@ -307,13 +307,13 @@ describe("OptionsPremiumPricerInStables", () => {
       );
 
       console.log(
-        `premiumSmallTimestamp is ${math.wmul(
+        `\tpremiumSmallTimestamp is ${math.wmul(
           premiumSmallTimestamp,
           underlyingPriceShifted
         )}`
       );
       console.log(
-        `premiumBigTimestamp is ${math.wmul(
+        `\tpremiumBigTimestamp is ${math.wmul(
           premiumBigTimestamp,
           underlyingPriceShifted
         )}`
@@ -394,7 +394,7 @@ describe("OptionsPremiumPricerInStables", () => {
         "getOptionDelta(uint256,uint256)"
       ](strikePrice, expiryTimestamp);
 
-      console.log(`delta is ${delta.toString()}`);
+      console.log(`\tdelta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "3457");
       assert.isBelow(parseInt(delta.toString()), 5000);
@@ -410,7 +410,7 @@ describe("OptionsPremiumPricerInStables", () => {
         "getOptionDelta(uint256,uint256)"
       ](strikePrice, expiryTimestamp);
 
-      console.log(`delta is ${delta.toString()}`);
+      console.log(`\tdelta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "7560");
       assert.isAbove(parseInt(delta.toString()), 5000);
@@ -432,8 +432,8 @@ describe("OptionsPremiumPricerInStables", () => {
         "getOptionDelta(uint256,uint256)"
       ](strikePriceLarger, expiryTimestamp);
 
-      console.log(`deltaSmall is ${delta.toString()}`);
-      console.log(`deltaLarger is ${deltaLarger.toString()}`);
+      console.log(`\tdeltaSmall is ${delta.toString()}`);
+      console.log(`\tdeltaLarger is ${deltaLarger.toString()}`);
 
       assert.equal(delta.toString(), "5455");
 
@@ -493,7 +493,7 @@ describe("OptionsPremiumPricerInStables", () => {
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePrice, annualizedVol, expiryTimestamp);
 
-      console.log(`delta is ${delta.toString()}`);
+      console.log(`\tdelta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "3457");
       assert.isBelow(parseInt(delta.toString()), 5000);
@@ -509,7 +509,7 @@ describe("OptionsPremiumPricerInStables", () => {
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePrice, annualizedVol, expiryTimestamp);
 
-      console.log(`delta is ${delta.toString()}`);
+      console.log(`\tdelta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "7560");
       assert.isAbove(parseInt(delta.toString()), 5000);
@@ -531,8 +531,8 @@ describe("OptionsPremiumPricerInStables", () => {
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePriceLarger, annualizedVol, expiryTimestamp);
 
-      console.log(`deltaSmall is ${delta.toString()}`);
-      console.log(`deltaLarger is ${deltaLarger.toString()}`);
+      console.log(`\tdeltaSmall is ${delta.toString()}`);
+      console.log(`\tdeltaLarger is ${deltaLarger.toString()}`);
 
       assert.equal(delta.toString(), "5455");
 

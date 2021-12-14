@@ -94,7 +94,7 @@ describe("OptionsPremiumPricerInNative", () => {
       );
 
       console.log(
-        `premium is ${math.wmul(premium, underlyingPriceShifted).toString()}`
+        `\tpremium is ${math.wmul(premium, underlyingPriceShifted).toString()}`
       );
 
       assert.equal(
@@ -124,11 +124,11 @@ describe("OptionsPremiumPricerInNative", () => {
       );
 
       console.log(
-        `premiumCall is ${math
+        `\tpremiumCall is ${math
           .wmul(premiumCall, underlyingPriceShifted)
           .toString()}`
       );
-      console.log(`premiumPut is ${premiumPut}`);
+      console.log(`\tpremiumPut is ${premiumPut}`);
 
       assert.equal(premiumPut.toString(), "31495280000000000");
       assert.equal(
@@ -158,11 +158,11 @@ describe("OptionsPremiumPricerInNative", () => {
       );
 
       console.log(
-        `premiumCall is ${math
+        `\tpremiumCall is ${math
           .wmul(premiumCall, underlyingPriceShifted)
           .toString()}`
       );
-      console.log(`premiumPut is ${premiumPut}`);
+      console.log(`\tpremiumPut is ${premiumPut}`);
 
       assert.equal(premiumPut.toString(), "883660000000000");
       assert.equal(
@@ -194,12 +194,12 @@ describe("OptionsPremiumPricerInNative", () => {
       );
 
       console.log(
-        `premiumSmall is ${math
+        `\tpremiumSmall is ${math
           .wmul(premiumSmall, underlyingPriceShifted)
           .toString()}`
       );
       console.log(
-        `premiumBig is ${math
+        `\tpremiumBig is ${math
           .wmul(premiumBig, underlyingPriceShifted)
           .toString()}`
       );
@@ -237,9 +237,9 @@ describe("OptionsPremiumPricerInNative", () => {
       );
 
       console.log(
-        `premiumCall is ${math.wmul(premiumCall, underlyingPriceShifted)}`
+        `\tpremiumCall is ${math.wmul(premiumCall, underlyingPriceShifted)}`
       );
-      console.log(`premiumPut is ${premiumPut}`);
+      console.log(`\tpremiumPut is ${premiumPut}`);
 
       assert.equal(
         math.wmul(premiumCall, underlyingPriceShifted).toString(),
@@ -271,13 +271,13 @@ describe("OptionsPremiumPricerInNative", () => {
       );
 
       console.log(
-        `premiumSmallTimestamp is ${math.wmul(
+        `\tpremiumSmallTimestamp is ${math.wmul(
           premiumSmallTimestamp,
           underlyingPriceShifted
         )}`
       );
       console.log(
-        `premiumBigTimestamp is ${math.wmul(
+        `\tpremiumBigTimestamp is ${math.wmul(
           premiumBigTimestamp,
           underlyingPriceShifted
         )}`
@@ -321,8 +321,8 @@ describe("OptionsPremiumPricerInNative", () => {
         true
       );
 
-      assert.isAtMost(callGas.toNumber(), 92640);
-      assert.isAtMost(putGas.toNumber(), 95517);
+      assert.isAtMost(callGas.toNumber(), 75290);
+      assert.isAtMost(putGas.toNumber(), 92575);
       // console.log("\t"+"getPremium call:", callGas.toNumber());
       // console.log("\t"+"getPremium put:", putGas.toNumber());
     });
@@ -366,7 +366,7 @@ describe("OptionsPremiumPricerInNative", () => {
       );
 
       console.log(
-        `premium is ${math.wmul(premium, underlyingPriceShifted).toString()}`
+        `\tpremium is ${math.wmul(premium, underlyingPriceShifted).toString()}`
       );
 
       assert.equal(
@@ -395,8 +395,8 @@ describe("OptionsPremiumPricerInNative", () => {
         true
       );
 
-      console.log(`premiumCall is ${premiumCall}`);
-      console.log(`premiumPut is ${premiumPut}`);
+      console.log(`\tpremiumCall is ${premiumCall}`);
+      console.log(`\tpremiumPut is ${premiumPut}`);
 
       assert.equal(premiumPut.toString(), "31495280000000000");
       assert.equal(premiumCall.toString(), "1287280000000000");
@@ -422,8 +422,8 @@ describe("OptionsPremiumPricerInNative", () => {
         true
       );
 
-      console.log(`premiumCall is ${premiumCall}`);
-      console.log(`premiumPut is ${premiumPut}`);
+      console.log(`\tpremiumCall is ${premiumCall}`);
+      console.log(`\tpremiumPut is ${premiumPut}`);
 
       assert.equal(premiumPut.toString(), "883660000000000");
       assert.equal(premiumCall.toString(), "31091660000000000");
@@ -451,8 +451,8 @@ describe("OptionsPremiumPricerInNative", () => {
         isPut
       );
 
-      console.log(`premiumSmall is ${premiumSmall}`);
-      console.log(`premiumBig is ${premiumBig}`);
+      console.log(`\tpremiumSmall is ${premiumSmall}`);
+      console.log(`\tpremiumBig is ${premiumBig}`);
 
       assert.equal(premiumSmall.toString(), "1287280000000000");
       assert.equal(premiumBig.toString(), "79320000000000");
@@ -480,8 +480,8 @@ describe("OptionsPremiumPricerInNative", () => {
         !isPut
       );
 
-      console.log(`premiumCall is ${premiumPut}`);
-      console.log(`premiumPut is ${premiumPut}`);
+      console.log(`\tpremiumCall is ${premiumPut}`);
+      console.log(`\tpremiumPut is ${premiumPut}`);
 
       assert.equal(premiumPut.toString(), "9322370000000000");
       assert.equal(premiumPut.toString(), "9322370000000000");
@@ -510,10 +510,10 @@ describe("OptionsPremiumPricerInNative", () => {
       );
 
       console.log(
-        `premiumSmallTimestamp is ${premiumSmallTimestamp}`
+        `\tpremiumSmallTimestamp is ${premiumSmallTimestamp}`
       );
       console.log(
-        `premiumBigTimestamp is ${premiumBigTimestamp}`
+        `\tpremiumBigTimestamp is ${premiumBigTimestamp}`
       );
 
       assert.equal(premiumSmallTimestamp, "1287280000000000");
@@ -544,8 +544,8 @@ describe("OptionsPremiumPricerInNative", () => {
         true
       );
 
-      assert.isAtMost(callGas.toNumber(), 95476);
-      assert.isAtMost(putGas.toNumber(), 95465);
+      assert.isAtMost(callGas.toNumber(), 92540);
+      assert.isAtMost(putGas.toNumber(), 92529);
       // console.log("\t"+"getPremium call:", callGas.toNumber());
       // console.log("\t"+"getPremium put:", putGas.toNumber());
     });
@@ -576,7 +576,7 @@ describe("OptionsPremiumPricerInNative", () => {
         "getOptionDelta(uint256,uint256)"
       ](strikePrice, expiryTimestamp);
 
-      console.log(`delta is ${delta.toString()}`);
+      console.log(`\tdelta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "1164");
       assert.isBelow(parseInt(delta.toString()), 5000);
@@ -590,7 +590,7 @@ describe("OptionsPremiumPricerInNative", () => {
         "getOptionDelta(uint256,uint256)"
       ](strikePrice, expiryTimestamp);
 
-      console.log(`delta is ${delta.toString()}`);
+      console.log(`\tdelta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "9193");
       assert.isAbove(parseInt(delta.toString()), 5000);
@@ -610,8 +610,8 @@ describe("OptionsPremiumPricerInNative", () => {
         "getOptionDelta(uint256,uint256)"
       ](strikePriceLarger, expiryTimestamp);
 
-      console.log(`deltaSmall is ${delta.toString()}`);
-      console.log(`deltaLarger is ${deltaLarger.toString()}`);
+      console.log(`\tdeltaSmall is ${delta.toString()}`);
+      console.log(`\tdeltaLarger is ${deltaLarger.toString()}`);
 
       assert.equal(delta.toString(), "5154");
 
@@ -667,7 +667,7 @@ describe("OptionsPremiumPricerInNative", () => {
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePrice, annualizedVol, expiryTimestamp);
 
-      console.log(`delta is ${delta.toString()}`);
+      console.log(`\tdelta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "1164");
       assert.isBelow(parseInt(delta.toString()), 5000);
@@ -681,7 +681,7 @@ describe("OptionsPremiumPricerInNative", () => {
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePrice, annualizedVol, expiryTimestamp);
 
-      console.log(`delta is ${delta.toString()}`);
+      console.log(`\tdelta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "9193");
       assert.isAbove(parseInt(delta.toString()), 5000);
@@ -701,8 +701,8 @@ describe("OptionsPremiumPricerInNative", () => {
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePriceLarger, annualizedVol, expiryTimestamp);
 
-      console.log(`deltaSmall is ${delta.toString()}`);
-      console.log(`deltaLarger is ${deltaLarger.toString()}`);
+      console.log(`\tdeltaSmall is ${delta.toString()}`);
+      console.log(`\tdeltaLarger is ${deltaLarger.toString()}`);
 
       assert.equal(delta.toString(), "5154");
 
