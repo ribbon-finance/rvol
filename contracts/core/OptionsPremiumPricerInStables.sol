@@ -8,7 +8,7 @@ import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
 import {Math} from "../libraries/Math.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
-contract OptionsPremiumPricer is DSMath {
+contract OptionsPremiumPricerInStables is DSMath {
     using SafeMath for uint256;
 
     /**
@@ -18,10 +18,8 @@ contract OptionsPremiumPricer is DSMath {
     IVolatilityOracle public immutable volatilityOracle;
     IPriceOracle public immutable priceOracle;
     IPriceOracle public immutable stablesOracle;
-    IPriceOracle public immutable nativeTokenOracle;
     uint256 private immutable priceOracleDecimals;
     uint256 private immutable stablesOracleDecimals;
-    uint256 private immutable nativeTokenOracleDecimals;
 
     // For reference - IKEEP3rVolatility: 0xCCdfCB72753CfD55C5afF5d98eA5f9C43be9659d
 
@@ -31,34 +29,28 @@ contract OptionsPremiumPricer is DSMath {
      * @param _volatilityOracle is the oracle for historical volatility
      * @param _priceOracle is the Chainlink price oracle for the underlying asset
      * @param _stablesOracle is the Chainlink price oracle for the strike asset (e.g. USDC)
-     * @param _nativeTokenOracle is the Chainlink price oracle for wrapped native tokens (e.g. WETH)
      */
     constructor(
         address _pool,
         address _volatilityOracle,
         address _priceOracle,
-        address _stablesOracle,
-        address _nativeTokenOracle
+        address _stablesOracle
     ) {
         require(_pool != address(0), "!_pool");
         require(_volatilityOracle != address(0), "!_volatilityOracle");
         require(_priceOracle != address(0), "!_priceOracle");
         require(_stablesOracle != address(0), "!_stablesOracle");
-        require(_nativeTokenOracle != address(0), "!_nativeTokenOracle");
 
         pool = _pool;
         volatilityOracle = IVolatilityOracle(_volatilityOracle);
         priceOracle = IPriceOracle(_priceOracle);
         stablesOracle = IPriceOracle(_stablesOracle);
-        nativeTokenOracle = IPriceOracle(_nativeTokenOracle);
         priceOracleDecimals = IPriceOracle(_priceOracle).decimals();
         stablesOracleDecimals = IPriceOracle(_stablesOracle).decimals();
-        nativeTokenOracleDecimals = IPriceOracle(_nativeTokenOracle).decimals();
     }
 
     /**
      * @notice Calculates the premium of the provided option using Black-Scholes
-     * @notice ONLY use when spot oracle is denominated in USDC
      * References for Black-Scholes:
        https://www.macroption.com/black-scholes-formula/
        https://www.investopedia.com/terms/b/blackscholes.asp
@@ -93,6 +85,38 @@ contract OptionsPremiumPricer is DSMath {
         );
     }
 
+    /**
+     * @notice Calculates the premium of the provided option using Black-Scholes in stables
+     * @param st is the strike price of the option
+     * @param expiryTimestamp is the unix timestamp of expiry
+     * @param isPut is whether the option is a put option
+     * @return premium for 100 contracts with 18 decimals
+     */
+    function getPremiumInStables(
+        uint256 st,
+        uint256 expiryTimestamp,
+        bool isPut
+    ) external view returns (uint256 premium) {
+        premium = _getPremium(
+            st,
+            expiryTimestamp,
+            priceOracle.latestAnswer(),
+            stablesOracle.latestAnswer(),
+            stablesOracleDecimals,
+            isPut
+        );
+    }
+
+    /**
+     * @notice Internal function to calculate the premium of the provided option using Black-Scholes
+     * @param st is the strike price of the option
+     * @param expiryTimestamp is the unix timestamp of expiry
+     * @param spotPrice is the spot price of the underlying asset
+     * @param assetPrice is the denomination asset for the options
+     * @param assetDecimals is the decimals points of the denomination asset price
+     * @param isPut is whether the option is a put option
+     * @return premium for 100 contracts with 18 decimals
+     */
     function _getPremium(
         uint256 st,
         uint256 expiryTimestamp,
@@ -125,65 +149,6 @@ contract OptionsPremiumPricer is DSMath {
     }
 
     /**
-     * @notice Calculates the premium of the provided option using Black-Scholes in stables
-     * @notice ONLY used when spot oracle is denominated in USDC
-     * @param st is the strike price of the option
-     * @param expiryTimestamp is the unix timestamp of expiry
-     * @param isPut is whether the option is a put option
-     * @return premium for 100 contracts with 18 decimals
-     */
-    function getPremiumInStables(
-        uint256 st,
-        uint256 expiryTimestamp,
-        bool isPut
-    ) external view returns (uint256 premium) {
-        premium = _getPremium(
-            st,
-            expiryTimestamp,
-            priceOracle.latestAnswer(),
-            stablesOracle.latestAnswer(),
-            stablesOracleDecimals,
-            isPut
-        );
-    }
-
-    /**
-     * @notice Calculates the premium of the provided option using Black-Scholes in stables
-     * @notice ONLY used when spot oracle is denominated in native tokens (e.g. ETH)
-     * @param st is the strike price of the option
-     * @param expiryTimestamp is the unix timestamp of expiry
-     * @param isPut is whether the option is a put option
-     * @return premium for 100 contracts with 18 decimals
-     */
-    function getPremiumNativePairsInStables(
-        uint256 st,
-        uint256 expiryTimestamp,
-        bool isPut
-    ) external view returns (uint256 premium) {
-        uint256 oracleMultiplier = 10**uint256(18).sub(8);
-
-        uint256 nativeTokenPrice = nativeTokenOracle.latestAnswer();
-        uint256 strikeInStables =
-            wmul(st, nativeTokenPrice.mul(oracleMultiplier)).div(
-                oracleMultiplier
-            );
-        uint256 spotInStables =
-            wmul(
-                priceOracle.latestAnswer(),
-                nativeTokenPrice.mul(oracleMultiplier)
-            );
-
-        premium = _getPremium(
-            strikeInStables,
-            expiryTimestamp,
-            spotInStables,
-            stablesOracle.latestAnswer(),
-            stablesOracleDecimals,
-            isPut
-        );
-    }
-
-    /**
      * @notice Calculates the option's delta
      * Formula reference: `d_1` in https://www.investopedia.com/terms/b/blackscholes.asp
      * http://www.optiontradingpedia.com/options_delta.htm
@@ -207,30 +172,6 @@ contract OptionsPremiumPricer is DSMath {
         uint256 spotPrice = priceOracle.latestAnswer();
         (uint256 sp, uint256 v, ) =
             blackScholesParams(spotPrice, expiryTimestamp);
-
-        delta = _getOptionDelta(sp, st, v, expiryTimestamp);
-    }
-
-    /**
-     * @notice Calculates the option's delta
-     * @notice ONLY used when spot oracle is denominated in native tokens (e.g. ETH)
-     * @param st is the strike price of the option
-     * @param expiryTimestamp is the unix timestamp of expiry
-     * @return delta for given option. 4 decimals (ex: 8100 = 0.81 delta) as this is what strike selection
-     * module recognizes
-     */
-    function getOptionDeltaNativePairs(uint256 st, uint256 expiryTimestamp)
-        external
-        view
-        returns (uint256 delta)
-    {
-        require(
-            expiryTimestamp > block.timestamp,
-            "Expiry must be in the future!"
-        );
-
-        uint256 sp = priceOracle.latestAnswer();
-        (, uint256 v, ) = blackScholesParams(sp, expiryTimestamp);
 
         delta = _getOptionDelta(sp, st, v, expiryTimestamp);
     }
@@ -408,26 +349,5 @@ contract OptionsPremiumPricer is DSMath {
      */
     function getUnderlyingPrice() external view returns (uint256 price) {
         price = priceOracle.latestAnswer();
-    }
-
-    /**
-     * @notice Calculates the underlying assets price
-     */
-    function getStablePrice() external view returns (uint256 price) {
-        price = stablesOracle.latestAnswer();
-    }
-
-    /**
-     * @notice Calculates the underlying assets price
-     */
-    function getNativeTokenPrice() external view returns (uint256 price) {
-        price = nativeTokenOracle.latestAnswer();
-    }
-
-    /**
-     * @notice Calculates the underlying assets price
-     */
-    function getPriceDecimals() external view returns (uint256 price) {
-        price = priceOracleDecimals;
     }
 }
