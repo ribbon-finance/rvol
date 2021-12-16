@@ -74,4 +74,28 @@ describe("ManualVolOracle", () => {
       );
     });
   });
+
+  describe("grantRole", () => {
+    it("grants role to new admin", async () => {
+      const adminRole = await oracle.ADMIN_ROLE();
+
+      await oracle.grantRole(adminRole, signer2.address);
+
+      assert.isTrue(await oracle.hasRole(adminRole, signer2.address));
+
+      let annualizedVol = BigNumber.from(10).pow(8);
+      await oracle
+        .connect(signer2)
+        .setAnnualizedVol(ethusdcPool, annualizedVol);
+    });
+
+    it("is able to grant default admin role", async () => {
+      const DEFAULT_ADMIN_ROLE =
+        "0x0000000000000000000000000000000000000000000000000000000000000000";
+
+      await oracle.grantRole(DEFAULT_ADMIN_ROLE, signer2.address);
+
+      assert.isTrue(await oracle.hasRole(DEFAULT_ADMIN_ROLE, signer2.address));
+    });
+  });
 });
