@@ -18,6 +18,7 @@ contract ManualVolOracle is AccessControl {
 
         // Add _admin as admin
         _setupRole(ADMIN_ROLE, _admin);
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
     }
 
     /// @dev A modifier which checks that the caller has the admin role.
