@@ -83,7 +83,7 @@ describe("ManualVolOracle", () => {
 
       assert.isTrue(await oracle.hasRole(adminRole, signer2.address));
 
-      let annualizedVol = BigNumber.from(10).pow(8);
+      const annualizedVol = BigNumber.from(10).pow(8);
       await oracle
         .connect(signer2)
         .setAnnualizedVol(ethusdcPool, annualizedVol);
