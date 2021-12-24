@@ -8,7 +8,7 @@ import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
 import {Math} from "../libraries/Math.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
-contract OptionsPremiumPricerInNative is DSMath {
+contract OptionsPremiumPricerInETH is DSMath {
     using SafeMath for uint256;
 
     /**
@@ -18,10 +18,10 @@ contract OptionsPremiumPricerInNative is DSMath {
     IVolatilityOracle public immutable volatilityOracle;
     IPriceOracle public immutable priceOracle;
     IPriceOracle public immutable stablesOracle;
-    IPriceOracle public immutable nativeTokenOracle;
+    IPriceOracle public immutable ethOracle;
     uint256 private immutable priceOracleDecimals;
     uint256 private immutable stablesOracleDecimals;
-    uint256 private immutable nativeTokenOracleDecimals;
+    uint256 private immutable ethOracleDecimals;
 
     // For reference - IKEEP3rVolatility: 0xCCdfCB72753CfD55C5afF5d98eA5f9C43be9659d
 
@@ -31,29 +31,29 @@ contract OptionsPremiumPricerInNative is DSMath {
      * @param _volatilityOracle is the oracle for historical volatility
      * @param _priceOracle is the Chainlink price oracle for the underlying asset
      * @param _stablesOracle is the Chainlink price oracle for the strike asset (e.g. USDC)
-     * @param _nativeTokenOracle is the Chainlink price oracle for wrapped native tokens (e.g. WETH)
+     * @param _ethOracle is the Chainlink price oracle for wrapped ETH tokens (e.g. WETH)
      */
     constructor(
         address _pool,
         address _volatilityOracle,
         address _priceOracle,
         address _stablesOracle,
-        address _nativeTokenOracle
+        address _ethOracle
     ) {
         require(_pool != address(0), "!_pool");
         require(_volatilityOracle != address(0), "!_volatilityOracle");
         require(_priceOracle != address(0), "!_priceOracle");
         require(_stablesOracle != address(0), "!_stablesOracle");
-        require(_nativeTokenOracle != address(0), "!_nativeTokenOracle");
+        require(_ethOracle != address(0), "!_ethOracle");
 
         pool = _pool;
         volatilityOracle = IVolatilityOracle(_volatilityOracle);
         priceOracle = IPriceOracle(_priceOracle);
         stablesOracle = IPriceOracle(_stablesOracle);
-        nativeTokenOracle = IPriceOracle(_nativeTokenOracle);
+        ethOracle = IPriceOracle(_ethOracle);
         priceOracleDecimals = IPriceOracle(_priceOracle).decimals();
         stablesOracleDecimals = IPriceOracle(_stablesOracle).decimals();
-        nativeTokenOracleDecimals = IPriceOracle(_nativeTokenOracle).decimals();
+        ethOracleDecimals = IPriceOracle(_ethOracle).decimals();
     }
 
     /**
@@ -105,18 +105,6 @@ contract OptionsPremiumPricerInNative is DSMath {
         uint256 expiryTimestamp,
         bool isPut
     ) external view returns (uint256 premium) {
-        // uint256 sp = wmul(
-        //     priceOracle.latestAnswer(),
-        //     nativeTokenOracle.latestAnswer().mul(10**10)
-        // );
-
-        // // The input strike price is in token/native pair. Convert
-        // // into token/usd pair and adjust the decimals to 8
-        // st = wmul(st, nativeTokenPrice.mul(10**10)).div(10**10);
-
-        // The input spot price is in token/native pair. Convert
-        // into token/usd pair with 18 decimals
-
         premium = _getPremium(
             st,
             _getUnderlyingInUSD(),
@@ -149,15 +137,6 @@ contract OptionsPremiumPricerInNative is DSMath {
             expiryTimestamp > block.timestamp,
             "Expiry must be in the future!"
         );
-        // uint256 nativeTokenPrice = nativeTokenOracle.latestAnswer();
-
-        // // // The input strike price is in token/native pair. Convert
-        // // // into token/usd pair and adjust the decimals to 8
-        // // st = wmul(st, nativeTokenPrice.mul(10**10)).div(10**10);
-
-        // // The input spot price is in token/native pair. Convert
-        // // into token/usd pair with 18 decimals
-        // sp = wmul(sp, nativeTokenPrice.mul(10**10));
 
         uint256 v;
         uint256 t;
@@ -381,14 +360,14 @@ contract OptionsPremiumPricerInNative is DSMath {
     }
 
     /**
-     * @notice Convert underlying price from native token price to USD
+     * @notice Convert underlying price from ETH token price to USD
      */
     function _getUnderlyingInUSD() internal view returns (uint256 price) {
-        // The underlying price is in token/native pair. Convert
+        // The underlying price is in token/ETH pair. Convert
         // into token/usd pair with 8 decimals
         price = wmul(
             priceOracle.latestAnswer(),
-            nativeTokenOracle.latestAnswer().mul(10**10)
+            ethOracle.latestAnswer().mul(10**10)
         );
     }
 }

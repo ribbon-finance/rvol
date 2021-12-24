@@ -11,7 +11,7 @@ const { provider, getContractFactory } = ethers;
 
 moment.tz.setDefault("UTC");
 
-describe("OptionsPremiumPricerInNative", () => {
+describe("OptionsPremiumPricerInETH", () => {
   let mockOracle: Contract;
   let optionsPremiumPricer: Contract;
   let testOptionsPremiumPricer: Contract;
@@ -35,11 +35,11 @@ describe("OptionsPremiumPricerInNative", () => {
     [signer] = await ethers.getSigners();
     const TestVolOracle = await getContractFactory("TestVolOracle", signer);
     const OptionsPremiumPricer = await getContractFactory(
-      "OptionsPremiumPricerInNative",
+      "OptionsPremiumPricerInETH",
       signer
     );
     const TestOptionsPremiumPricer = await getContractFactory(
-      "TestOptionsPremiumPricerInNative",
+      "TestOptionsPremiumPricerInETH",
       signer
     );
 

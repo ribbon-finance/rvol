@@ -1,24 +1,22 @@
 //SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.7.3;
 
-import {
-    OptionsPremiumPricerInNative
-} from "../core/OptionsPremiumPricerInNative.sol";
+import {OptionsPremiumPricerInETH} from "../core/OptionsPremiumPricerInETH.sol";
 
-contract TestOptionsPremiumPricerInNative is OptionsPremiumPricerInNative {
+contract TestOptionsPremiumPricerInETH is OptionsPremiumPricerInETH {
     constructor(
         address _pool,
         address _volatilityOracle,
         address _priceOracle,
         address _stablesOracle,
-        address _nativeTokenOracle
+        address _ETHTokenOracle
     )
-        OptionsPremiumPricerInNative(
+        OptionsPremiumPricerInETH(
             _pool,
             _volatilityOracle,
             _priceOracle,
             _stablesOracle,
-            _nativeTokenOracle
+            _ETHTokenOracle
         )
     {}
 
