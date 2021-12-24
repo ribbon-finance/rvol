@@ -11,7 +11,7 @@ const { provider, getContractFactory } = ethers;
 
 moment.tz.setDefault("UTC");
 
-describe("OptionsPremiumPricer", () => {
+describe("OptionsPremiumPricerInStables", () => {
   let mockOracle: Contract;
   let optionsPremiumPricer: Contract;
   let testOptionsPremiumPricer: Contract;
@@ -36,11 +36,11 @@ describe("OptionsPremiumPricer", () => {
     [signer] = await ethers.getSigners();
     const TestVolOracle = await getContractFactory("TestVolOracle", signer);
     const OptionsPremiumPricer = await getContractFactory(
-      "OptionsPremiumPricer",
+      "OptionsPremiumPricerInStables",
       signer
     );
     const TestOptionsPremiumPricer = await getContractFactory(
-      "TestOptionsPremiumPricer",
+      "TestOptionsPremiumPricerInStables",
       signer
     );
 
@@ -109,7 +109,7 @@ describe("OptionsPremiumPricer", () => {
       );
 
       console.log(
-        `premium is ${math.wmul(premium, underlyingPriceShifted).toString()}`
+        `\tpremium is ${math.wmul(premium, underlyingPriceShifted).toString()}`
       );
 
       assert.equal(
@@ -145,11 +145,11 @@ describe("OptionsPremiumPricer", () => {
       );
 
       console.log(
-        `premiumCall is ${math
+        `\tpremiumCall is ${math
           .wmul(premiumCall, underlyingPriceShifted)
           .toString()}`
       );
-      console.log(`premiumPut is ${premiumPut}`);
+      console.log(`\tpremiumPut is ${premiumPut}`);
 
       assert.equal(premiumPut.div(WAD).toString(), "413");
       assert.equal(
@@ -181,11 +181,11 @@ describe("OptionsPremiumPricer", () => {
       );
 
       console.log(
-        `premiumCall is ${math
+        `\tpremiumCall is ${math
           .wmul(premiumCall, underlyingPriceShifted)
           .toString()}`
       );
-      console.log(`premiumPut is ${premiumPut}`);
+      console.log(`\tpremiumPut is ${premiumPut}`);
 
       assert.equal(premiumPut.div(WAD).toString(), "125");
       assert.equal(
@@ -221,12 +221,12 @@ describe("OptionsPremiumPricer", () => {
       );
 
       console.log(
-        `premiumSmall is ${math
+        `\tpremiumSmall is ${math
           .wmul(premiumSmall, underlyingPriceShifted)
           .toString()}`
       );
       console.log(
-        `premiumBig is ${math
+        `\tpremiumBig is ${math
           .wmul(premiumBig, underlyingPriceShifted)
           .toString()}`
       );
@@ -264,9 +264,9 @@ describe("OptionsPremiumPricer", () => {
       );
 
       console.log(
-        `premiumCall is ${math.wmul(premiumCall, underlyingPriceShifted)}`
+        `\tpremiumCall is ${math.wmul(premiumCall, underlyingPriceShifted)}`
       );
-      console.log(`premiumPut is ${premiumPut}`);
+      console.log(`\tpremiumPut is ${premiumPut}`);
 
       assert.equal(
         math.wmul(premiumCall, underlyingPriceShifted).div(WAD).toString(),
@@ -307,13 +307,13 @@ describe("OptionsPremiumPricer", () => {
       );
 
       console.log(
-        `premiumSmallTimestamp is ${math.wmul(
+        `\tpremiumSmallTimestamp is ${math.wmul(
           premiumSmallTimestamp,
           underlyingPriceShifted
         )}`
       );
       console.log(
-        `premiumBigTimestamp is ${math.wmul(
+        `\tpremiumBigTimestamp is ${math.wmul(
           premiumBigTimestamp,
           underlyingPriceShifted
         )}`
@@ -361,10 +361,10 @@ describe("OptionsPremiumPricer", () => {
         true
       );
 
-      assert.isAtMost(callGas.toNumber(), 56575);
-      assert.isAtMost(putGas.toNumber(), 74027);
-      // console.log("getPremium call:", callGas.toNumber());
-      // console.log("getPremium put:", putGas.toNumber());
+      assert.isAtMost(callGas.toNumber(), 56719);
+      assert.isAtMost(putGas.toNumber(), 74168);
+      // console.log("\t"+"getPremium call:", callGas.toNumber());
+      // console.log("\t"+"getPremium put:", putGas.toNumber());
     });
   });
 
@@ -394,7 +394,7 @@ describe("OptionsPremiumPricer", () => {
         "getOptionDelta(uint256,uint256)"
       ](strikePrice, expiryTimestamp);
 
-      console.log(`delta is ${delta.toString()}`);
+      console.log(`\tdelta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "3457");
       assert.isBelow(parseInt(delta.toString()), 5000);
@@ -410,7 +410,7 @@ describe("OptionsPremiumPricer", () => {
         "getOptionDelta(uint256,uint256)"
       ](strikePrice, expiryTimestamp);
 
-      console.log(`delta is ${delta.toString()}`);
+      console.log(`\tdelta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "7560");
       assert.isAbove(parseInt(delta.toString()), 5000);
@@ -432,8 +432,8 @@ describe("OptionsPremiumPricer", () => {
         "getOptionDelta(uint256,uint256)"
       ](strikePriceLarger, expiryTimestamp);
 
-      console.log(`deltaSmall is ${delta.toString()}`);
-      console.log(`deltaLarger is ${deltaLarger.toString()}`);
+      console.log(`\tdeltaSmall is ${delta.toString()}`);
+      console.log(`\tdeltaLarger is ${deltaLarger.toString()}`);
 
       assert.equal(delta.toString(), "5455");
 
@@ -456,7 +456,7 @@ describe("OptionsPremiumPricer", () => {
       ](strikePriceLarger, expiryTimestamp);
 
       assert.isAtMost(gas.toNumber(), 49000);
-      // console.log("getOptionDelta:", gas.toNumber());
+      // console.log("\t"+"getOptionDelta:", gas.toNumber());
     });
   });
 
@@ -493,7 +493,7 @@ describe("OptionsPremiumPricer", () => {
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePrice, annualizedVol, expiryTimestamp);
 
-      console.log(`delta is ${delta.toString()}`);
+      console.log(`\tdelta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "3457");
       assert.isBelow(parseInt(delta.toString()), 5000);
@@ -509,7 +509,7 @@ describe("OptionsPremiumPricer", () => {
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePrice, annualizedVol, expiryTimestamp);
 
-      console.log(`delta is ${delta.toString()}`);
+      console.log(`\tdelta is ${delta.toString()}`);
 
       assert.equal(delta.toString(), "7560");
       assert.isAbove(parseInt(delta.toString()), 5000);
@@ -531,8 +531,8 @@ describe("OptionsPremiumPricer", () => {
         "getOptionDelta(uint256,uint256,uint256,uint256)"
       ](underlyingPrice, strikePriceLarger, annualizedVol, expiryTimestamp);
 
-      console.log(`deltaSmall is ${delta.toString()}`);
-      console.log(`deltaLarger is ${deltaLarger.toString()}`);
+      console.log(`\tdeltaSmall is ${delta.toString()}`);
+      console.log(`\tdeltaLarger is ${deltaLarger.toString()}`);
 
       assert.equal(delta.toString(), "5455");
 
@@ -555,7 +555,7 @@ describe("OptionsPremiumPricer", () => {
       ](underlyingPrice, strikePriceLarger, annualizedVol, expiryTimestamp);
 
       assert.isAtMost(gas.toNumber(), 49000);
-      // console.log("getOptionDelta:", gas.toNumber());
+      // console.log("\t"+"getOptionDelta:", gas.toNumber());
     });
   });
 
@@ -639,3 +639,4 @@ describe("OptionsPremiumPricer", () => {
     }
   };
 });
+

@@ -8,7 +8,7 @@ import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
 import {Math} from "../libraries/Math.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
-contract OptionsPremiumPricer is DSMath {
+contract OptionsPremiumPricerInETH is DSMath {
     using SafeMath for uint256;
 
     /**
@@ -18,8 +18,10 @@ contract OptionsPremiumPricer is DSMath {
     IVolatilityOracle public immutable volatilityOracle;
     IPriceOracle public immutable priceOracle;
     IPriceOracle public immutable stablesOracle;
+    IPriceOracle public immutable ethOracle;
     uint256 private immutable priceOracleDecimals;
     uint256 private immutable stablesOracleDecimals;
+    uint256 private immutable ethOracleDecimals;
 
     // For reference - IKEEP3rVolatility: 0xCCdfCB72753CfD55C5afF5d98eA5f9C43be9659d
 
@@ -29,24 +31,29 @@ contract OptionsPremiumPricer is DSMath {
      * @param _volatilityOracle is the oracle for historical volatility
      * @param _priceOracle is the Chainlink price oracle for the underlying asset
      * @param _stablesOracle is the Chainlink price oracle for the strike asset (e.g. USDC)
+     * @param _ethOracle is the Chainlink price oracle for wrapped ETH tokens (e.g. WETH)
      */
     constructor(
         address _pool,
         address _volatilityOracle,
         address _priceOracle,
-        address _stablesOracle
+        address _stablesOracle,
+        address _ethOracle
     ) {
         require(_pool != address(0), "!_pool");
         require(_volatilityOracle != address(0), "!_volatilityOracle");
         require(_priceOracle != address(0), "!_priceOracle");
         require(_stablesOracle != address(0), "!_stablesOracle");
+        require(_ethOracle != address(0), "!_ethOracle");
 
         pool = _pool;
         volatilityOracle = IVolatilityOracle(_volatilityOracle);
         priceOracle = IPriceOracle(_priceOracle);
         stablesOracle = IPriceOracle(_stablesOracle);
+        ethOracle = IPriceOracle(_ethOracle);
         priceOracleDecimals = IPriceOracle(_priceOracle).decimals();
         stablesOracleDecimals = IPriceOracle(_stablesOracle).decimals();
+        ethOracleDecimals = IPriceOracle(_ethOracle).decimals();
     }
 
     /**
@@ -69,31 +76,82 @@ contract OptionsPremiumPricer is DSMath {
         uint256 expiryTimestamp,
         bool isPut
     ) external view returns (uint256 premium) {
+        uint256 sp = _getUnderlyingInUSD();
+
+        (uint256 assetPrice, uint256 assetDecimals) =
+            isPut
+                ? (stablesOracle.latestAnswer(), stablesOracleDecimals)
+                : (sp.div(10**10), priceOracleDecimals.sub(10));
+
+        premium = _getPremium(
+            st,
+            sp,
+            expiryTimestamp,
+            assetPrice,
+            assetDecimals,
+            isPut
+        );
+    }
+
+    /**
+     * @notice Calculates the premium of the provided option using Black-Scholes in stables
+     * @param st is the strike price of the option
+     * @param expiryTimestamp is the unix timestamp of expiry
+     * @param isPut is whether the option is a put option
+     * @return premium for 100 contracts with 18 decimals
+     */
+    function getPremiumInStables(
+        uint256 st,
+        uint256 expiryTimestamp,
+        bool isPut
+    ) external view returns (uint256 premium) {
+        premium = _getPremium(
+            st,
+            _getUnderlyingInUSD(),
+            expiryTimestamp,
+            stablesOracle.latestAnswer(),
+            stablesOracleDecimals,
+            isPut
+        );
+    }
+
+    /**
+     * @notice Internal function to calculate the premium of the provided option using Black-Scholes
+     * @param st is the strike price of the option
+     * @param sp is the spot price of the underlying asset
+     * @param expiryTimestamp is the unix timestamp of expiry
+     * @param assetPrice is the denomination asset for the options
+     * @param assetDecimals is the decimals points of the denomination asset price
+     * @param isPut is whether the option is a put option
+     * @return premium for 100 contracts with 18 decimals
+     */
+    function _getPremium(
+        uint256 st,
+        uint256 sp,
+        uint256 expiryTimestamp,
+        uint256 assetPrice,
+        uint256 assetDecimals,
+        bool isPut
+    ) internal view returns (uint256 premium) {
         require(
             expiryTimestamp > block.timestamp,
             "Expiry must be in the future!"
         );
 
-        uint256 spotPrice = priceOracle.latestAnswer();
-
-        (uint256 sp, uint256 v, uint256 t) =
-            blackScholesParams(spotPrice, expiryTimestamp);
+        uint256 v;
+        uint256 t;
+        (sp, v, t) = blackScholesParams(sp, expiryTimestamp);
 
         (uint256 call, uint256 put) = quoteAll(t, v, sp, st);
 
         // Multiplier to convert oracle latestAnswer to 18 decimals
-        uint256 assetOracleMultiplier =
-            10 **
-                (
-                    uint256(18).sub(
-                        isPut ? stablesOracleDecimals : priceOracleDecimals
-                    )
-                );
+        uint256 assetOracleMultiplier = 10**uint256(18).sub(assetDecimals);
+
         // Make option premium denominated in the underlying
         // asset for call vaults and USDC for put vaults
         premium = isPut
-            ? wdiv(put, stablesOracle.latestAnswer().mul(assetOracleMultiplier))
-            : wdiv(call, spotPrice.mul(assetOracleMultiplier));
+            ? wdiv(put, assetPrice.mul(assetOracleMultiplier))
+            : wdiv(call, assetPrice.mul(assetOracleMultiplier));
 
         // Convert to 18 decimals
         premium = premium.mul(assetOracleMultiplier);
@@ -104,6 +162,7 @@ contract OptionsPremiumPricer is DSMath {
      * Formula reference: `d_1` in https://www.investopedia.com/terms/b/blackscholes.asp
      * http://www.optiontradingpedia.com/options_delta.htm
      * https://www.macroption.com/black-scholes-formula/
+     * @notice ONLY used when spot oracle is denominated in USDC
      * @param st is the strike price of the option
      * @param expiryTimestamp is the unix timestamp of expiry
      * @return delta for given option. 4 decimals (ex: 8100 = 0.81 delta) as this is what strike selection
@@ -118,26 +177,11 @@ contract OptionsPremiumPricer is DSMath {
             expiryTimestamp > block.timestamp,
             "Expiry must be in the future!"
         );
-
-        uint256 spotPrice = priceOracle.latestAnswer();
-        (uint256 sp, uint256 v, uint256 t) =
+        uint256 spotPrice = _getUnderlyingInUSD();
+        (uint256 sp, uint256 v, ) =
             blackScholesParams(spotPrice, expiryTimestamp);
 
-        uint256 d1;
-        uint256 d2;
-
-        // Divide delta by 10 ** 10 to bring it to 4 decimals for strike selection
-        if (sp >= st) {
-            (d1, d2) = derivatives(t, v, sp, st);
-            delta = Math.ncdf((Math.FIXED_1 * d1) / 1e18).div(10**10);
-        } else {
-            // If underlying < strike price notice we switch st <-> sp passed into d
-            (d1, d2) = derivatives(t, v, st, sp);
-            delta = uint256(10)
-                .mul(10**13)
-                .sub(Math.ncdf((Math.FIXED_1 * d2) / 1e18))
-                .div(10**10);
-        }
+        delta = _getOptionDelta(sp, st, v, expiryTimestamp);
     }
 
     /**
@@ -163,6 +207,22 @@ contract OptionsPremiumPricer is DSMath {
             "Expiry must be in the future!"
         );
 
+        delta = _getOptionDelta(sp, st, v, expiryTimestamp);
+    }
+
+    /**
+     * @notice Internal function to calculate the option's delta
+     * @param st is the strike price of the option
+     * @param expiryTimestamp is the unix timestamp of expiry
+     * @return delta for given option. 4 decimals (ex: 8100 = 0.81 delta) as this is what strike selection
+     * module recognizes
+     */
+    function _getOptionDelta(
+        uint256 sp,
+        uint256 st,
+        uint256 v,
+        uint256 expiryTimestamp
+    ) internal view returns (uint256 delta) {
         // days until expiry
         uint256 t = expiryTimestamp.sub(block.timestamp).div(1 days);
 
@@ -296,6 +356,18 @@ contract OptionsPremiumPricer is DSMath {
      * @notice Calculates the underlying assets price
      */
     function getUnderlyingPrice() external view returns (uint256 price) {
-        price = priceOracle.latestAnswer();
+        price = _getUnderlyingInUSD().div(10**10);
+    }
+
+    /**
+     * @notice Convert underlying price from ETH token price to USD
+     */
+    function _getUnderlyingInUSD() internal view returns (uint256 price) {
+        // The underlying price is in token/ETH pair. Convert
+        // into token/usd pair with 8 decimals
+        price = wmul(
+            priceOracle.latestAnswer(),
+            ethOracle.latestAnswer().mul(10**10)
+        );
     }
 }
