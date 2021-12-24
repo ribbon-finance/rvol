@@ -69,16 +69,16 @@ contract OptionsPremiumPricerInStables is DSMath {
         uint256 expiryTimestamp,
         bool isPut
     ) external view returns (uint256 premium) {
-        uint256 spotPrice = priceOracle.latestAnswer();
+        uint256 sp = priceOracle.latestAnswer();
         (uint256 assetPrice, uint256 assetDecimals) =
             isPut
                 ? (stablesOracle.latestAnswer(), stablesOracleDecimals)
-                : (spotPrice, priceOracleDecimals);
+                : (sp, priceOracleDecimals);
 
         premium = _getPremium(
             st,
+            sp,
             expiryTimestamp,
-            spotPrice,
             assetPrice,
             assetDecimals,
             isPut
@@ -99,8 +99,8 @@ contract OptionsPremiumPricerInStables is DSMath {
     ) external view returns (uint256 premium) {
         premium = _getPremium(
             st,
-            expiryTimestamp,
             priceOracle.latestAnswer(),
+            expiryTimestamp,
             stablesOracle.latestAnswer(),
             stablesOracleDecimals,
             isPut
@@ -110,8 +110,8 @@ contract OptionsPremiumPricerInStables is DSMath {
     /**
      * @notice Internal function to calculate the premium of the provided option using Black-Scholes
      * @param st is the strike price of the option
+     * @param sp is the spot price of the underlying asset
      * @param expiryTimestamp is the unix timestamp of expiry
-     * @param spotPrice is the spot price of the underlying asset
      * @param assetPrice is the denomination asset for the options
      * @param assetDecimals is the decimals points of the denomination asset price
      * @param isPut is whether the option is a put option
@@ -119,8 +119,8 @@ contract OptionsPremiumPricerInStables is DSMath {
      */
     function _getPremium(
         uint256 st,
+        uint256 sp,
         uint256 expiryTimestamp,
-        uint256 spotPrice,
         uint256 assetPrice,
         uint256 assetDecimals,
         bool isPut
@@ -130,8 +130,9 @@ contract OptionsPremiumPricerInStables is DSMath {
             "Expiry must be in the future!"
         );
 
-        (uint256 sp, uint256 v, uint256 t) =
-            blackScholesParams(spotPrice, expiryTimestamp);
+        uint256 v;
+        uint256 t;
+        (sp, v, t) = blackScholesParams(sp, expiryTimestamp);
 
         (uint256 call, uint256 put) = quoteAll(t, v, sp, st);
 
