@@ -86,7 +86,7 @@ contract ManualVolOracle is AccessControl {
 
     /**
      * @notice Computes the option id for a given Option struct
-     * @param delta is the option's delta, in units of 10**8. E.g. 105% = 1.05 * 10**8
+     * @param delta is the option's delta, in units of 10**4. E.g. 0.1d = 0.1 * 10**4
      * @param underlying is the underlying of the option
      * @param collateralAsset is the collateral used to collateralize the option
      * @param isPut is the flag used to determine if an option is a put or call
