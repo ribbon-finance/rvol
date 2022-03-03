@@ -48,16 +48,27 @@ contract ManualVolOracle is AccessControl {
     }
 
     /**
-     * @notice Sets the annualized standard deviation of the base currency of the `pool`
-     * @param _pool is the uniswap pool we want to set annualized volatility for
-     * @param _annualizedVol is the annualized volatility with 10**8 decimals i.e. 1*10**8 = 100%
+     * @notice Sets the annualized standard deviation of the base currency of one or more `pool(s)`
+     * @param _pools is an array of uniswap pools we want to set annualized volatility for
+     * @param _newAnnualizedVols is an array of the annualized volatility with 10**8 decimals i.e. 1*10**8 = 100%
      */
-    function setAnnualizedVol(address _pool, uint256 _annualizedVol)
-        external
-        onlyAdmin
-    {
-        require(_annualizedVol > 50 * 10**6, "Cannot be less than 50%");
-        require(_annualizedVol < 400 * 10**6, "Cannot be more than 400%");
-        annualizedVols[_pool] = _annualizedVol;
+    function setAnnualizedVol(
+        address[] calldata _pools,
+        uint256[] calldata _newAnnualizedVols
+    ) external onlyAdmin {
+        require(
+            _pools.length == _newAnnualizedVols.length,
+            "Input lengths mismatched"
+        );
+
+        for (uint256 i = 0; i < _pools.length; i++) {
+            address pool = _pools[i];
+            uint256 newAnnualizedVol = _newAnnualizedVols[i];
+
+            require(newAnnualizedVol > 50 * 10**6, "Cannot be less than 50%");
+            require(newAnnualizedVol < 400 * 10**6, "Cannot be more than 400%");
+
+            annualizedVols[pool] = newAnnualizedVol;
+        }
     }
 }
