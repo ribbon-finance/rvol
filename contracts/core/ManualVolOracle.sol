@@ -8,17 +8,19 @@ contract ManualVolOracle is AccessControl {
     /// @dev The identifier of the role which maintains other roles.
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN");
 
-    /// @dev Map of instrument id to IV
+    /// @dev Map of option id to IV
     mapping(bytes32 => uint256) private annualizedVols;
 
     /**
      * Instrument describe an option with a specific delta, asset and its option type.
      */
-    struct Instrument {
+    struct Option {
         // option delta
         uint256 delta;
-        // ERC20 token
-        address asset;
+        // Underlying token, eg an stETH-collateralized option's underlying is WETH
+        address underlying;
+        // Asset used to collateralize an option, eg an stETH-collateralized option's collateral is wstETH
+        address collateralAsset;
         // If an otoken is a put or not
         bool isPut;
     }
@@ -51,57 +53,78 @@ contract ManualVolOracle is AccessControl {
 
     /**
      * @notice Returns the annualized standard deviation of the base currency in 10**8 i.e. 1*10**8 = 100%
+     * @param optionId is the encoded id for the option struct
      * @return annualStdev is the annualized standard deviation of the asset
      */
-    function annualizedVol(bytes32 instrumentId)
+    function annualizedVol(bytes32 optionId)
         public
         view
         returns (uint256 annualStdev)
     {
-        return annualizedVols[instrumentId];
+        return annualizedVols[optionId];
     }
 
     /**
-     * @notice Computes the instrument id for a given Instrument struct
-     * @param instrument is an Instrument struct to encode
+     * @notice Returns the annualized standard deviation of the base currency in 10**8 i.e. 1*10**8 = 100%
+     * @param delta is the option's delta, in units of 10**8. E.g. 105% = 1.05 * 10**8
+     * @param underlying is the underlying of the option
+     * @param collateralAsset is the collateral used to collateralize the option
+     * @param isPut is the flag used to determine if an option is a put or call
+     * @return annualStdev is the annualized standard deviation of the asset
      */
-    function getInstrumentId(Instrument calldata instrument)
-        external
-        pure
-        returns (bytes32)
-    {
+    function annualizedVol(
+        uint256 delta,
+        address underlying,
+        address collateralAsset,
+        bool isPut
+    ) public view returns (uint256 annualStdev) {
+        return
+            annualizedVols[
+                getOptionId(delta, underlying, collateralAsset, isPut)
+            ];
+    }
+
+    /**
+     * @notice Computes the option id for a given Option struct
+     * @param delta is the option's delta, in units of 10**8. E.g. 105% = 1.05 * 10**8
+     * @param underlying is the underlying of the option
+     * @param collateralAsset is the collateral used to collateralize the option
+     * @param isPut is the flag used to determine if an option is a put or call
+     */
+    function getOptionId(
+        uint256 delta,
+        address underlying,
+        address collateralAsset,
+        bool isPut
+    ) public pure returns (bytes32) {
         return
             keccak256(
-                abi.encodePacked(
-                    instrument.delta,
-                    instrument.asset,
-                    instrument.isPut
-                )
+                abi.encodePacked(delta, underlying, collateralAsset, isPut)
             );
     }
 
     /**
      * @notice Sets the annualized standard deviation of the base currency of one or more `pool(s)`
-     * @param _instrumentIds is an array of Instrument IDs encoded and hashed with instrumentId
-     * @param _newAnnualizedVols is an array of the annualized volatility with 10**8 decimals i.e. 1*10**8 = 100%
+     * @param optionIds is an array of Option IDs encoded and hashed with optionId
+     * @param newAnnualizedVols is an array of the annualized volatility with 10**8 decimals i.e. 1*10**8 = 100%
      */
     function setAnnualizedVol(
-        bytes32[] calldata _instrumentIds,
-        uint256[] calldata _newAnnualizedVols
+        bytes32[] calldata optionIds,
+        uint256[] calldata newAnnualizedVols
     ) external onlyAdmin {
         require(
-            _instrumentIds.length == _newAnnualizedVols.length,
+            optionIds.length == newAnnualizedVols.length,
             "Input lengths mismatched"
         );
 
-        for (uint256 i = 0; i < _instrumentIds.length; i++) {
-            bytes32 instrumentId = _instrumentIds[i];
-            uint256 newAnnualizedVol = _newAnnualizedVols[i];
+        for (uint256 i = 0; i < optionIds.length; i++) {
+            bytes32 optionId = optionIds[i];
+            uint256 newAnnualizedVol = newAnnualizedVols[i];
 
             require(newAnnualizedVol > 50 * 10**6, "Cannot be less than 50%");
             require(newAnnualizedVol < 400 * 10**6, "Cannot be more than 400%");
 
-            annualizedVols[instrumentId] = newAnnualizedVol;
+            annualizedVols[optionId] = newAnnualizedVol;
         }
     }
 }
