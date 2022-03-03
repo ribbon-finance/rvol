@@ -9,8 +9,6 @@ contract ManualVolOracle is AccessControl {
 
     mapping(address => uint256) private annualizedVols;
 
-    mapping(address => bool) private poolHistory;
-
     /**
      * @notice Creates an volatility oracle for a pool
      * @param _admin is the admin
@@ -67,20 +65,10 @@ contract ManualVolOracle is AccessControl {
             address pool = _pools[i];
             uint256 newAnnualizedVol = _newAnnualizedVols[i];
 
-            require(
-                !poolHistory[pool],
-                "Cannot set vol for the same pool twice"
-            );
             require(newAnnualizedVol > 50 * 10**6, "Cannot be less than 50%");
             require(newAnnualizedVol < 400 * 10**6, "Cannot be more than 400%");
 
             annualizedVols[pool] = newAnnualizedVol;
-            poolHistory[pool] = true;
-        }
-
-        // Set mapping back to false for gas refunds
-        for (uint256 i = 0; i < _pools.length; i++) {
-            poolHistory[_pools[i]] = false;
         }
     }
 }

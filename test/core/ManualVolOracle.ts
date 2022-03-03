@@ -5,7 +5,6 @@ import moment from "moment-timezone";
 import * as time from "../helpers/time";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber } from "@ethersproject/bignumber";
-import "mocha";
 
 const { getContractFactory } = ethers;
 
@@ -76,15 +75,6 @@ describe("ManualVolOracle", () => {
       ).to.be.revertedWith("Input lengths mismatched");
     });
 
-    it("reverts when setting the same pool twice", async function () {
-      let ethAnnualizedVol = BigNumber.from(10).pow(8);
-      await expect(
-        oracle.setAnnualizedVol(
-          [ethusdcPool, ethusdcPool],
-          [ethAnnualizedVol, ethAnnualizedVol])
-      ).to.be.revertedWith("Cannot set vol for the same pool twice");
-    });
-
     it("sets the annualized vol for the pool", async function () {
       let annualizedVol = BigNumber.from(10).pow(8);
       await oracle.setAnnualizedVol([ethusdcPool], [annualizedVol]);
@@ -112,8 +102,8 @@ describe("ManualVolOracle", () => {
       let annualizedVol = BigNumber.from(10).pow(8);
       const tx = await oracle.setAnnualizedVol([ethusdcPool], [annualizedVol]);
       const receipt = await tx.wait();
-      console.log(receipt.gasUsed.toNumber());
-      assert.isAtMost(receipt.gasUsed.toNumber(), 51000);
+      // console.log(receipt.gasUsed.toNumber());
+      assert.isAtMost(receipt.gasUsed.toNumber(), 48000);
     });
 
     it("fits gas budget (multi) [ @skip-on-coverage ]", async function () {
@@ -122,8 +112,8 @@ describe("ManualVolOracle", () => {
 
       const tx = await oracle.setAnnualizedVol([ethusdcPool, wbtcusdcPool], [ethAnnualizedVol, wbtcAnnualizedVol]);
       const receipt = await tx.wait();
-      console.log(receipt.gasUsed.toNumber());
-      assert.isAtMost(receipt.gasUsed.toNumber(), 77000);
+      // console.log(receipt.gasUsed.toNumber());
+      assert.isAtMost(receipt.gasUsed.toNumber(), 71000);
     });
   });
 
