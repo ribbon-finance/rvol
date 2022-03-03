@@ -1,4 +1,5 @@
 //SPDX-License-Identifier: GPL-3.0
+pragma experimental ABIEncoderV2;
 pragma solidity 0.7.3;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -7,7 +8,22 @@ contract ManualVolOracle is AccessControl {
     /// @dev The identifier of the role which maintains other roles.
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN");
 
-    mapping(address => uint256) private annualizedVols;
+    /// @dev Map of option id to IV
+    mapping(bytes32 => uint256) private annualizedVols;
+
+    /**
+     * Instrument describe an option with a specific delta, asset and its option type.
+     */
+    struct Option {
+        // option delta
+        uint256 delta;
+        // Underlying token, eg an stETH-collateralized option's underlying is WETH
+        address underlying;
+        // Asset used to collateralize an option, eg an stETH-collateralized option's collateral is wstETH
+        address collateralAsset;
+        // If an otoken is a put or not
+        bool isPut;
+    }
 
     /**
      * @notice Creates an volatility oracle for a pool
@@ -31,44 +47,84 @@ contract ManualVolOracle is AccessControl {
      * @notice Returns the standard deviation of the base currency in 10**8 i.e. 1*10**8 = 100%
      * @return standardDeviation is the standard deviation of the asset
      */
-    function vol(address) public pure returns (uint256 standardDeviation) {
+    function vol(bytes32) public pure returns (uint256 standardDeviation) {
         return 0;
     }
 
     /**
      * @notice Returns the annualized standard deviation of the base currency in 10**8 i.e. 1*10**8 = 100%
+     * @param optionId is the encoded id for the option struct
      * @return annualStdev is the annualized standard deviation of the asset
      */
-    function annualizedVol(address pool)
+    function annualizedVol(bytes32 optionId)
         public
         view
         returns (uint256 annualStdev)
     {
-        return annualizedVols[pool];
+        return annualizedVols[optionId];
+    }
+
+    /**
+     * @notice Returns the annualized standard deviation of the base currency in 10**8 i.e. 1*10**8 = 100%
+     * @param delta is the option's delta, in units of 10**8. E.g. 105% = 1.05 * 10**8
+     * @param underlying is the underlying of the option
+     * @param collateralAsset is the collateral used to collateralize the option
+     * @param isPut is the flag used to determine if an option is a put or call
+     * @return annualStdev is the annualized standard deviation of the asset
+     */
+    function annualizedVol(
+        uint256 delta,
+        address underlying,
+        address collateralAsset,
+        bool isPut
+    ) public view returns (uint256 annualStdev) {
+        return
+            annualizedVols[
+                getOptionId(delta, underlying, collateralAsset, isPut)
+            ];
+    }
+
+    /**
+     * @notice Computes the option id for a given Option struct
+     * @param delta is the option's delta, in units of 10**4. E.g. 0.1d = 0.1 * 10**4
+     * @param underlying is the underlying of the option
+     * @param collateralAsset is the collateral used to collateralize the option
+     * @param isPut is the flag used to determine if an option is a put or call
+     */
+    function getOptionId(
+        uint256 delta,
+        address underlying,
+        address collateralAsset,
+        bool isPut
+    ) public pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(delta, underlying, collateralAsset, isPut)
+            );
     }
 
     /**
      * @notice Sets the annualized standard deviation of the base currency of one or more `pool(s)`
-     * @param _pools is an array of uniswap pools we want to set annualized volatility for
-     * @param _newAnnualizedVols is an array of the annualized volatility with 10**8 decimals i.e. 1*10**8 = 100%
+     * @param optionIds is an array of Option IDs encoded and hashed with optionId
+     * @param newAnnualizedVols is an array of the annualized volatility with 10**8 decimals i.e. 1*10**8 = 100%
      */
     function setAnnualizedVol(
-        address[] calldata _pools,
-        uint256[] calldata _newAnnualizedVols
+        bytes32[] calldata optionIds,
+        uint256[] calldata newAnnualizedVols
     ) external onlyAdmin {
         require(
-            _pools.length == _newAnnualizedVols.length,
+            optionIds.length == newAnnualizedVols.length,
             "Input lengths mismatched"
         );
 
-        for (uint256 i = 0; i < _pools.length; i++) {
-            address pool = _pools[i];
-            uint256 newAnnualizedVol = _newAnnualizedVols[i];
+        for (uint256 i = 0; i < optionIds.length; i++) {
+            bytes32 optionId = optionIds[i];
+            uint256 newAnnualizedVol = newAnnualizedVols[i];
 
             require(newAnnualizedVol > 50 * 10**6, "Cannot be less than 50%");
             require(newAnnualizedVol < 400 * 10**6, "Cannot be more than 400%");
 
-            annualizedVols[pool] = newAnnualizedVol;
+            annualizedVols[optionId] = newAnnualizedVol;
         }
     }
 }
