@@ -2,15 +2,18 @@
 pragma solidity ^0.7.3;
 
 interface IManualVolatilityOracle {
-    function vol(address pool)
+    function vol(bytes32 optionId)
         external
         view
         returns (uint256 standardDeviation);
 
-    function annualizedVol(address pool)
+    function annualizedVol(bytes32 optionId)
         external
         view
         returns (uint256 annualStdev);
 
-    function setAnnualizedVol(address pool, uint256 annualizedVol) external;
+    function setAnnualizedVol(
+        bytes32[] calldata optionIds,
+        uint256[] calldata newAnnualizedVols
+    ) external;
 }

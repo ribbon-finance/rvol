@@ -1,7 +1,9 @@
 //SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.7.3;
 
-import {IVolatilityOracle} from "../interfaces/IVolatilityOracle.sol";
+import {
+    IManualVolatilityOracle
+} from "../interfaces/IManualVolatilityOracle.sol";
 import {IPriceOracle} from "../interfaces/IPriceOracle.sol";
 import {DSMath} from "../libraries/DSMath.sol";
 import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
@@ -14,8 +16,8 @@ contract OptionsPremiumPricerInStables is DSMath {
     /**
      * Immutables
      */
-    address public immutable pool;
-    IVolatilityOracle public immutable volatilityOracle;
+    bytes32 public immutable optionId;
+    IManualVolatilityOracle public immutable volatilityOracle;
     IPriceOracle public immutable priceOracle;
     IPriceOracle public immutable stablesOracle;
     uint256 private immutable priceOracleDecimals;
@@ -24,25 +26,25 @@ contract OptionsPremiumPricerInStables is DSMath {
     // For reference - IKEEP3rVolatility: 0xCCdfCB72753CfD55C5afF5d98eA5f9C43be9659d
 
     /**
-     * @notice Constructor for pricer, deploy one for every pool
-     * @param _pool is the Uniswap v3 pool
+     * @notice Constructor for pricer, deploy one for every optionId
+     * @param _optionId is the bytes32 of the Option struct specifiying collateral, underlying, delta, and isPut
      * @param _volatilityOracle is the oracle for historical volatility
      * @param _priceOracle is the Chainlink price oracle for the underlying asset
      * @param _stablesOracle is the Chainlink price oracle for the strike asset (e.g. USDC)
      */
     constructor(
-        address _pool,
+        bytes32 _optionId,
         address _volatilityOracle,
         address _priceOracle,
         address _stablesOracle
     ) {
-        require(_pool != address(0), "!_pool");
+        require(_optionId.length > 0, "!_optionId");
         require(_volatilityOracle != address(0), "!_volatilityOracle");
         require(_priceOracle != address(0), "!_priceOracle");
         require(_stablesOracle != address(0), "!_stablesOracle");
 
-        pool = _pool;
-        volatilityOracle = IVolatilityOracle(_volatilityOracle);
+        optionId = _optionId;
+        volatilityOracle = IManualVolatilityOracle(_volatilityOracle);
         priceOracle = IPriceOracle(_priceOracle);
         stablesOracle = IPriceOracle(_stablesOracle);
         priceOracleDecimals = IPriceOracle(_priceOracle).decimals();
@@ -341,7 +343,7 @@ contract OptionsPremiumPricerInStables is DSMath {
         sp = spotPrice.mul(10**8).div(10**priceOracleDecimals);
         // annualized vol * 10 ** 8 because delta expects 18 decimals
         // and annualizedVol is 8 decimals
-        v = volatilityOracle.annualizedVol(pool).mul(10**10);
+        v = volatilityOracle.annualizedVol(optionId).mul(10**10);
         t = expiryTimestamp.sub(block.timestamp).div(1 days);
     }
 

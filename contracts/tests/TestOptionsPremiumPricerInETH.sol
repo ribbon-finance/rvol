@@ -5,14 +5,14 @@ import {OptionsPremiumPricerInETH} from "../core/OptionsPremiumPricerInETH.sol";
 
 contract TestOptionsPremiumPricerInETH is OptionsPremiumPricerInETH {
     constructor(
-        address _pool,
+        bytes32 _optionId,
         address _volatilityOracle,
         address _priceOracle,
         address _stablesOracle,
         address _ETHTokenOracle
     )
         OptionsPremiumPricerInETH(
-            _pool,
+            _optionId,
             _volatilityOracle,
             _priceOracle,
             _stablesOracle,
