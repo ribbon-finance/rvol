@@ -19,7 +19,7 @@ describe("OptionsPremiumPricerInStables", () => {
   let signer: SignerWithAddress;
   let underlyingPrice: BigNumber;
   let underlyingPriceShifted: BigNumber;
-  let optionId: String
+  let optionId: String;
 
   const WEEK = 604800; // 7 days
   const WAD = BigNumber.from(10).pow(18);
@@ -49,7 +49,7 @@ describe("OptionsPremiumPricerInStables", () => {
       weth,
       weth,
       false
-    )
+    );
 
     await mockOracle.setAnnualizedVol([optionId], [165273561]);
 

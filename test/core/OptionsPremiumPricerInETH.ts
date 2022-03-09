@@ -18,12 +18,12 @@ describe("OptionsPremiumPricerInETH", () => {
   let signer: SignerWithAddress;
   let underlyingPrice: BigNumber;
   let underlyingPriceShifted: BigNumber;
-  let optionId: String
+  let optionId: String;
 
   const WEEK = 604800; // 7 days
   const DIVIDER = BigNumber.from(10).pow(10);
 
-  const bzrx = "0x56d811088235F11C8920698a204A5010a788f4b3"
+  const bzrx = "0x56d811088235F11C8920698a204A5010a788f4b3";
   const delta = 1000;
 
   const bzrxPriceOracleAddress = "0x8f7c7181ed1a2ba41cfc3f5d064ef91b67daef66";
@@ -49,7 +49,7 @@ describe("OptionsPremiumPricerInETH", () => {
       bzrx,
       bzrx,
       false
-    )
+    );
 
     await mockOracle.setAnnualizedVol([optionId], [165273561]);
 
