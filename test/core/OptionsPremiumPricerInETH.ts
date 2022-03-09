@@ -18,22 +18,21 @@ describe("OptionsPremiumPricerInETH", () => {
   let signer: SignerWithAddress;
   let underlyingPrice: BigNumber;
   let underlyingPriceShifted: BigNumber;
+  let optionId: String
 
-  const PERIOD = 43200; // 12 hours
-  const WINDOW_IN_DAYS = 7; // weekly vol data
   const WEEK = 604800; // 7 days
+  const DIVIDER = BigNumber.from(10).pow(10);
 
-  const bzrxethPool = "0x4f25F309FbE94771e4F636D5D433A8f8Cd5C332B";
+  const bzrx = "0x56d811088235F11C8920698a204A5010a788f4b3"
+  const delta = 1000;
 
   const bzrxPriceOracleAddress = "0x8f7c7181ed1a2ba41cfc3f5d064ef91b67daef66";
   const wethPriceOracleAddress = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
   const usdcPriceOracleAddress = "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6";
 
-  const pool = bzrxethPool;
-
   before(async function () {
     [signer] = await ethers.getSigners();
-    const TestVolOracle = await getContractFactory("TestVolOracle", signer);
+    const TestVolOracle = await getContractFactory("ManualVolOracle", signer);
     const OptionsPremiumPricer = await getContractFactory(
       "OptionsPremiumPricerInETH",
       signer
@@ -43,17 +42,26 @@ describe("OptionsPremiumPricerInETH", () => {
       signer
     );
 
-    mockOracle = await TestVolOracle.deploy(PERIOD, WINDOW_IN_DAYS);
+    mockOracle = await TestVolOracle.deploy(signer.address);
+
+    optionId = await mockOracle.getOptionId(
+      delta,
+      bzrx,
+      bzrx,
+      false
+    )
+
+    await mockOracle.setAnnualizedVol([optionId], [165273561]);
 
     optionsPremiumPricer = await OptionsPremiumPricer.deploy(
-      bzrxethPool,
+      optionId,
       mockOracle.address,
       bzrxPriceOracleAddress,
       usdcPriceOracleAddress,
       wethPriceOracleAddress
     );
     testOptionsPremiumPricer = await TestOptionsPremiumPricer.deploy(
-      bzrxethPool,
+      optionId,
       mockOracle.address,
       bzrxPriceOracleAddress,
       usdcPriceOracleAddress,
@@ -69,10 +77,6 @@ describe("OptionsPremiumPricerInETH", () => {
 
   describe("#getPremium", () => {
     time.revertToSnapshotAfterEach();
-
-    beforeEach(async () => {
-      await updateVol(pool);
-    });
 
     it("reverts on timestamp being in the past", async function () {
       const expiryTimestamp = (await time.now()).sub(WEEK);
@@ -98,8 +102,8 @@ describe("OptionsPremiumPricerInETH", () => {
       );
 
       assert.equal(
-        math.wmul(premium, underlyingPriceShifted).toString(),
-        "1287280691200000"
+        math.wmul(premium, underlyingPriceShifted).div(DIVIDER).toString(),
+        "1625177"
       );
 
       assert.isAbove(
@@ -130,10 +134,10 @@ describe("OptionsPremiumPricerInETH", () => {
       );
       console.log(`\tpremiumPut is ${premiumPut}`);
 
-      assert.equal(premiumPut.toString(), "31495280000000000");
+      assert.equal(premiumPut.div(DIVIDER).toString(), "4645977");
       assert.equal(
-        math.wmul(premiumCall, underlyingPriceShifted).toString(),
-        "1287280691200000"
+        math.wmul(premiumCall, underlyingPriceShifted).div(DIVIDER).toString(),
+        "1625177"
       );
 
       assert.isAbove(
@@ -164,10 +168,10 @@ describe("OptionsPremiumPricerInETH", () => {
       );
       console.log(`\tpremiumPut is ${premiumPut}`);
 
-      assert.equal(premiumPut.toString(), "883660000000000");
+      assert.equal(premiumPut.div(DIVIDER).toString(), "1375000");
       assert.equal(
-        math.wmul(premiumCall, underlyingPriceShifted).toString(),
-        "31091659520000000"
+        math.wmul(premiumCall, underlyingPriceShifted).div(DIVIDER).toString(),
+        "4395799"
       );
 
       assert.isAbove(
@@ -205,12 +209,12 @@ describe("OptionsPremiumPricerInETH", () => {
       );
 
       assert.equal(
-        math.wmul(premiumSmall, underlyingPriceShifted).toString(),
-        "1287280691200000"
+        math.wmul(premiumSmall, underlyingPriceShifted).div(DIVIDER).toString(),
+        "1625177"
       );
       assert.equal(
-        math.wmul(premiumBig, underlyingPriceShifted).toString(),
-        "79320166400000"
+        math.wmul(premiumBig, underlyingPriceShifted).div(DIVIDER).toString(),
+        "912400"
       );
 
       assert.isAbove(
@@ -242,14 +246,14 @@ describe("OptionsPremiumPricerInETH", () => {
       console.log(`\tpremiumPut is ${premiumPut}`);
 
       assert.equal(
-        math.wmul(premiumCall, underlyingPriceShifted).toString(),
-        "9322370048000000"
+        math.wmul(premiumCall.div(DIVIDER), underlyingPriceShifted).toString(),
+        "2752279"
       );
-      assert.equal(premiumPut.toString(), "9322370000000000");
+      assert.equal(premiumPut.div(DIVIDER).toString(), "2752279");
 
       assert.equal(
-        parseInt(premiumPut.div(10 ** 10).toString()),
-        parseInt(math.wmul(premiumCall, underlyingPriceShifted).div(10 ** 10).toString())
+        parseInt(premiumPut.div(DIVIDER).toString()),
+        parseInt(math.wmul(premiumCall.div(DIVIDER), underlyingPriceShifted).toString())
       );
     });
 
@@ -286,14 +290,16 @@ describe("OptionsPremiumPricerInETH", () => {
       assert.equal(
         math
           .wmul(premiumSmallTimestamp, underlyingPriceShifted)
+          .div(DIVIDER)
           .toString(),
-        "1287280691200000"
+        "1625177"
       );
       assert.equal(
         math
           .wmul(premiumBigTimestamp, underlyingPriceShifted)
+          .div(DIVIDER)
           .toString(),
-        "3667199846400000"
+        "2741452"
       );
 
       assert.isBelow(
@@ -331,10 +337,6 @@ describe("OptionsPremiumPricerInETH", () => {
   describe("#getPremiumInStables", () => {
     time.revertToSnapshotAfterEach();
 
-    beforeEach(async () => {
-      await updateVol(pool);
-    });
-
     it("reverts on timestamp being in the past", async function () {
       const expiryTimestamp = (await time.now()).sub(WEEK);
       await expect(
@@ -371,7 +373,7 @@ describe("OptionsPremiumPricerInETH", () => {
 
       assert.equal(
         math.wmul(premium, underlyingPriceShifted).toString(),
-        "1287280691200000"
+        "16251771084800000"
       );
 
       assert.isAbove(
@@ -398,8 +400,8 @@ describe("OptionsPremiumPricerInETH", () => {
       console.log(`\tpremiumCall is ${premiumCall}`);
       console.log(`\tpremiumPut is ${premiumPut}`);
 
-      assert.equal(premiumPut.toString(), "31495280000000000");
-      assert.equal(premiumCall.toString(), "1287280000000000");
+      assert.equal(premiumPut.div(DIVIDER).toString(), "4645977");
+      assert.equal(premiumCall.div(DIVIDER).toString(), "1625177");
 
       assert.isAbove(
         parseInt(premiumPut.toString()),
@@ -425,8 +427,8 @@ describe("OptionsPremiumPricerInETH", () => {
       console.log(`\tpremiumCall is ${premiumCall}`);
       console.log(`\tpremiumPut is ${premiumPut}`);
 
-      assert.equal(premiumPut.toString(), "883660000000000");
-      assert.equal(premiumCall.toString(), "31091660000000000");
+      assert.equal(premiumPut.div(DIVIDER).toString(), "1375000");
+      assert.equal(premiumCall.div(DIVIDER).toString(), "4395800");
 
       assert.isAbove(
         parseInt(premiumCall.toString()),
@@ -454,8 +456,8 @@ describe("OptionsPremiumPricerInETH", () => {
       console.log(`\tpremiumSmall is ${premiumSmall}`);
       console.log(`\tpremiumBig is ${premiumBig}`);
 
-      assert.equal(premiumSmall.toString(), "1287280000000000");
-      assert.equal(premiumBig.toString(), "79320000000000");
+      assert.equal(premiumSmall.div(DIVIDER).toString(), "1625177");
+      assert.equal(premiumBig.div(DIVIDER).toString(), "912400");
 
       assert.isAbove(
         parseInt(premiumSmall.toString()),
@@ -483,8 +485,8 @@ describe("OptionsPremiumPricerInETH", () => {
       console.log(`\tpremiumCall is ${premiumPut}`);
       console.log(`\tpremiumPut is ${premiumPut}`);
 
-      assert.equal(premiumPut.toString(), "9322370000000000");
-      assert.equal(premiumPut.toString(), "9322370000000000");
+      assert.equal(premiumPut.div(DIVIDER).toString(), "2752279");
+      assert.equal(premiumPut.div(DIVIDER).toString(), "2752279");
 
       assert.equal(
         parseInt(premiumPut.toString()),
@@ -516,8 +518,8 @@ describe("OptionsPremiumPricerInETH", () => {
         `\tpremiumBigTimestamp is ${premiumBigTimestamp}`
       );
 
-      assert.equal(premiumSmallTimestamp, "1287280000000000");
-      assert.equal(premiumBigTimestamp, "3667200000000000");
+      assert.equal(premiumSmallTimestamp.div(DIVIDER).toString(), "1625177");
+      assert.equal(premiumBigTimestamp.div(DIVIDER).toString(), "2741452");
 
       assert.isBelow(
         parseInt(
@@ -554,10 +556,6 @@ describe("OptionsPremiumPricerInETH", () => {
   describe("#getOptionDelta", () => {
     time.revertToSnapshotAfterEach();
 
-    beforeEach(async () => {
-      await updateVol(pool);
-    });
-
     it("reverts on timestamp being in the past", async function () {
       await expect(
         optionsPremiumPricer["getOptionDelta(uint256,uint256)"](
@@ -578,7 +576,7 @@ describe("OptionsPremiumPricerInETH", () => {
 
       console.log(`\tdelta is ${delta.toString()}`);
 
-      assert.equal(delta.toString(), "1164");
+      assert.equal(delta.toString(), "3813");
       assert.isBelow(parseInt(delta.toString()), 5000);
     });
 
@@ -592,7 +590,7 @@ describe("OptionsPremiumPricerInETH", () => {
 
       console.log(`\tdelta is ${delta.toString()}`);
 
-      assert.equal(delta.toString(), "9193");
+      assert.equal(delta.toString(), "7172");
       assert.isAbove(parseInt(delta.toString()), 5000);
     });
 
@@ -613,7 +611,7 @@ describe("OptionsPremiumPricerInETH", () => {
       console.log(`\tdeltaSmall is ${delta.toString()}`);
       console.log(`\tdeltaLarger is ${deltaLarger.toString()}`);
 
-      assert.equal(delta.toString(), "5154");
+      assert.equal(delta.toString(), "5455");
 
       assert.isAbove(parseInt(delta.toString()), 5000);
       assert.isBelow(
@@ -641,10 +639,13 @@ describe("OptionsPremiumPricerInETH", () => {
     let annualizedVol: BigNumber;
 
     beforeEach(async () => {
-      await updateVol(pool);
-      let optionsPremiumPricerPool = await optionsPremiumPricer.pool();
       annualizedVol = (
-        await mockOracle.annualizedVol(optionsPremiumPricerPool)
+        await mockOracle["annualizedVol(uint256,address,address,bool)"](
+          delta,
+          bzrx,
+          bzrx,
+          false
+        )
       ).mul(BigNumber.from(10).pow(10));
     });
 
@@ -669,7 +670,7 @@ describe("OptionsPremiumPricerInETH", () => {
 
       console.log(`\tdelta is ${delta.toString()}`);
 
-      assert.equal(delta.toString(), "1164");
+      assert.equal(delta.toString(), "3813");
       assert.isBelow(parseInt(delta.toString()), 5000);
     });
 
@@ -683,7 +684,7 @@ describe("OptionsPremiumPricerInETH", () => {
 
       console.log(`\tdelta is ${delta.toString()}`);
 
-      assert.equal(delta.toString(), "9193");
+      assert.equal(delta.toString(), "7172");
       assert.isAbove(parseInt(delta.toString()), 5000);
     });
 
@@ -704,7 +705,7 @@ describe("OptionsPremiumPricerInETH", () => {
       console.log(`\tdeltaSmall is ${delta.toString()}`);
       console.log(`\tdeltaLarger is ${deltaLarger.toString()}`);
 
-      assert.equal(delta.toString(), "5154");
+      assert.equal(delta.toString(), "5455");
 
       assert.isAbove(parseInt(delta.toString()), 5000);
       assert.isBelow(
@@ -766,45 +767,5 @@ describe("OptionsPremiumPricerInETH", () => {
       ).to.be.revertedWith("!st");
     });
   });
-
-  const getTopOfPeriod = async () => {
-    const latestTimestamp = (await provider.getBlock("latest")).timestamp;
-    let topOfPeriod: number;
-
-    const rem = latestTimestamp % PERIOD;
-    if (rem < Math.floor(PERIOD / 2)) {
-      topOfPeriod = latestTimestamp - rem + PERIOD;
-    } else {
-      topOfPeriod = latestTimestamp + rem + PERIOD;
-    }
-    return topOfPeriod;
-  };
-
-  const updateVol = async (pool: string) => {
-    const values = [
-      BigNumber.from("90000000000000"),
-      BigNumber.from("95000000000000"),
-      BigNumber.from("105000000000000"),
-      BigNumber.from("110000000000000"),
-      BigNumber.from("115000000000000"),
-      BigNumber.from("120000000000000"),
-      BigNumber.from("125000000000000"),
-      BigNumber.from("130000000000000"),
-      BigNumber.from("135000000000000"),
-      BigNumber.from("140000000000000"),
-      BigNumber.from("145000000000000"),
-      BigNumber.from("150000000000000"),
-      BigNumber.from("155000000000000"),
-    ];
-
-    await mockOracle.initPool(pool);
-
-    for (let i = 0; i < values.length; i++) {
-      await mockOracle.setPrice(values[i]);
-      const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
-      await time.increaseTo(topOfPeriod);
-      await mockOracle.mockCommit(pool);
-    }
-  };
 });
 
