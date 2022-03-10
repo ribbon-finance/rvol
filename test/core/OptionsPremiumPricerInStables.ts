@@ -19,22 +19,20 @@ describe("OptionsPremiumPricerInStables", () => {
   let signer: SignerWithAddress;
   let underlyingPrice: BigNumber;
   let underlyingPriceShifted: BigNumber;
+  let optionId: String;
 
-  const PERIOD = 43200; // 12 hours
-  const WINDOW_IN_DAYS = 7; // weekly vol data
   const WEEK = 604800; // 7 days
   const WAD = BigNumber.from(10).pow(18);
 
-  const ethusdcPool = "0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8";
-  // const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-  // const usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+  const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+  const delta = 1000;
 
   const wethPriceOracleAddress = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
   const usdcPriceOracleAddress = "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6";
 
   before(async function () {
     [signer] = await ethers.getSigners();
-    const TestVolOracle = await getContractFactory("TestVolOracle", signer);
+    const TestVolOracle = await getContractFactory("ManualVolOracle", signer);
     const OptionsPremiumPricer = await getContractFactory(
       "OptionsPremiumPricerInStables",
       signer
@@ -44,15 +42,25 @@ describe("OptionsPremiumPricerInStables", () => {
       signer
     );
 
-    mockOracle = await TestVolOracle.deploy(PERIOD, WINDOW_IN_DAYS);
+    mockOracle = await TestVolOracle.deploy(signer.address);
+
+    optionId = await mockOracle.getOptionId(
+      delta,
+      weth,
+      weth,
+      false
+    );
+
+    await mockOracle.setAnnualizedVol([optionId], [165273561]);
+
     optionsPremiumPricer = await OptionsPremiumPricer.deploy(
-      ethusdcPool,
+      optionId,
       mockOracle.address,
       wethPriceOracleAddress,
       usdcPriceOracleAddress
     );
     testOptionsPremiumPricer = await TestOptionsPremiumPricer.deploy(
-      ethusdcPool,
+      optionId,
       mockOracle.address,
       wethPriceOracleAddress,
       usdcPriceOracleAddress
@@ -82,10 +90,6 @@ describe("OptionsPremiumPricerInStables", () => {
 
   describe("getPremium", () => {
     time.revertToSnapshotAfterEach();
-
-    beforeEach(async () => {
-      await updateVol();
-    });
 
     it("reverts on timestamp being in the past", async function () {
       const expiryTimestamp = (await time.now()).sub(WEEK);
@@ -371,9 +375,6 @@ describe("OptionsPremiumPricerInStables", () => {
   describe("getOptionDelta", () => {
     time.revertToSnapshotAfterEach();
 
-    beforeEach(async () => {
-      await updateVol();
-    });
 
     it("reverts on timestamp being in the past", async function () {
       await expect(
@@ -465,10 +466,13 @@ describe("OptionsPremiumPricerInStables", () => {
     let annualizedVol: BigNumber;
 
     beforeEach(async () => {
-      await updateVol();
-      let optionsPremiumPricerPool = await optionsPremiumPricer.pool();
       annualizedVol = (
-        await mockOracle.annualizedVol(optionsPremiumPricerPool)
+        await mockOracle["annualizedVol(uint256,address,address,bool)"](
+          delta,
+          weth,
+          weth,
+          false
+        )
       ).mul(BigNumber.from(10).pow(10));
     });
 
@@ -598,45 +602,5 @@ describe("OptionsPremiumPricerInStables", () => {
       ).to.be.revertedWith("!st");
     });
   });
-
-  const getTopOfPeriod = async () => {
-    const latestTimestamp = (await provider.getBlock("latest")).timestamp;
-    let topOfPeriod: number;
-
-    const rem = latestTimestamp % PERIOD;
-    if (rem < Math.floor(PERIOD / 2)) {
-      topOfPeriod = latestTimestamp - rem + PERIOD;
-    } else {
-      topOfPeriod = latestTimestamp + rem + PERIOD;
-    }
-    return topOfPeriod;
-  };
-
-  const updateVol = async () => {
-    const values = [
-      BigNumber.from("2000000000"),
-      BigNumber.from("2100000000"),
-      BigNumber.from("2200000000"),
-      BigNumber.from("2150000000"),
-      BigNumber.from("2250000000"),
-      BigNumber.from("2350000000"),
-      BigNumber.from("2450000000"),
-      BigNumber.from("2550000000"),
-      BigNumber.from("2350000000"),
-      BigNumber.from("2450000000"),
-      BigNumber.from("2250000000"),
-      BigNumber.from("2250000000"),
-      BigNumber.from("2650000000"),
-    ];
-
-    await mockOracle.initPool(ethusdcPool);
-
-    for (let i = 0; i < values.length; i++) {
-      await mockOracle.setPrice(values[i]);
-      const topOfPeriod = (await getTopOfPeriod()) + PERIOD;
-      await time.increaseTo(topOfPeriod);
-      await mockOracle.mockCommit(ethusdcPool);
-    }
-  };
 });
 
