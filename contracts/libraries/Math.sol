@@ -80,7 +80,7 @@ library Math {
             xAux >>= 4;
             result <<= 2;
         }
-        if (xAux >= 0x8) {
+        if (xAux >= 0x4) {
             result <<= 1;
         }
 
@@ -243,10 +243,13 @@ library Math {
     }
 
     function ncdf(uint256 x) internal pure returns (uint256) {
+        if (x > (5656854 * FIXED_1) / 1e6) {
+            return 1e14;
+        }
         int256 t1 = int256(1e7 + ((2316419 * x) / FIXED_1));
-        uint256 exp = ((x / 2) * x) / FIXED_1;
-        int256 d = int256((3989423 * FIXED_1) / optimalExp(uint256(exp)));
-        uint256 prob =
+        uint256 exp = (x * (x >> 3)) / (FIXED_1 >> 2);
+        int256 d = int256((3989423 * FIXED_1) / optimalExp(exp));
+        uint256 prob = 1e14 -
             uint256(
                 (d *
                     (3193815 +
@@ -258,27 +261,13 @@ library Math {
                         t1) *
                     1e7) / t1
             );
-        if (x > 0) prob = 1e14 - prob;
         return prob;
     }
 
     function cdf(int256 x) internal pure returns (uint256) {
-        int256 t1 = int256(1e7 + int256((2316419 * abs(x)) / FIXED_1));
-        uint256 exp = uint256((x / 2) * x) / FIXED_1;
-        int256 d = int256((3989423 * FIXED_1) / optimalExp(uint256(exp)));
-        uint256 prob =
-            uint256(
-                (d *
-                    (3193815 +
-                        ((-3565638 +
-                            ((17814780 +
-                                ((-18212560 + (13302740 * 1e7) / t1) * 1e7) /
-                                t1) * 1e7) /
-                            t1) * 1e7) /
-                        t1) *
-                    1e7) / t1
-            );
-        if (x > 0) prob = 1e14 - prob;
-        return prob;
+        if (x >= 0) {
+            return ncdf(uint256(x));
+        }
+        return 1e14 - ncdf(uint256(-x));
     }
 }
