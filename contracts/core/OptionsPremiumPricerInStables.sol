@@ -233,7 +233,7 @@ contract OptionsPremiumPricerInStables is DSMath {
             (d1, d2) = derivatives(t, v, st, sp);
             delta = uint256(10)
                 .mul(10**13)
-                .sub(Math.ncdf((Math.FIXED_1 * d2) / 1e18))
+                .sub(Math.cdf(int256(Math.FIXED_1) * int256(d2) / 1e18))
                 .div(10**10);
         }
     }
